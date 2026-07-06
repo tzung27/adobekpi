@@ -1625,10 +1625,10 @@ async function afterLogin() {
 async function openProfileModal() {
   try {
     const d = await fetchJSON('/api/profile');
-    document.getElementById('profile-name').textContent = d.name || '';
-    document.getElementById('profile-username').textContent = d.username || '';
-    document.getElementById('profile-group').textContent = d.group_name || '';
-    document.getElementById('profile-status').textContent = d.status || '';
+    document.getElementById('profile-name').textContent = d.name || '—';
+    document.getElementById('profile-username').textContent = d.username || '—';
+    document.getElementById('profile-group').textContent = d.group_name || '—';
+    document.getElementById('profile-status').textContent = d.status || '—';
     document.getElementById('profile-email').value = d.email || '';
     document.getElementById('profile-password').value = '';
     document.getElementById('profile-last-login').textContent = d.last_login || '—';
