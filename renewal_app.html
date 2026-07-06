@@ -1566,12 +1566,12 @@ async function doLogout() {
 
 // ── Version polling + red-pencil indicator ─────────────────────────────────────
 let _autoRefreshTimer = null;
-let _knownVersion = '';
+let _knownVersion = null;  // null = not yet fetched
 let _versionSince = '';
 
 function startSSE() {
   stopSSE();
-  _knownVersion = '';
+  _knownVersion = null;
   _versionSince = new Date().toISOString().slice(0, 23).replace('T', ' ');
   _autoRefreshTimer = setInterval(_checkVersion, 10000);
 }
@@ -1586,7 +1586,7 @@ async function _checkVersion() {
   try {
     const d = await fetchJSON('/api/table_version/main_table');
     if (!d.version) return;
-    if (_knownVersion && d.version !== _knownVersion) {
+    if (_knownVersion !== null && d.version !== _knownVersion) {
       // Fetch changed rows and mark pencils red
       const c = await fetchJSON(`/api/changes/main_table?since=${encodeURIComponent(_versionSince)}`);
       if (c.rows && c.rows.length) {
