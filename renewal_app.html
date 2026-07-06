@@ -1557,61 +1557,35 @@ async function doLogout() {
   switchTab('dash');
 }
 
-// ── SSE real-time row sync ─────────────────────────────────────────────────────
-let _sseSource = null;
-let _sseLastTs = '';
-let _sseReconnTimer = null;
+// ── Auto-refresh: poll version every 10s, reload table if changed ──────────────
+let _autoRefreshTimer = null;
+let _knownVersion = '';
 
 function startSSE() {
   stopSSE();
-  _sseLastTs = new Date().toISOString().slice(0, 23).replace('T', ' ');
-  _connectSSE();
+  _knownVersion = '';
+  _autoRefreshTimer = setInterval(_checkVersion, 10000);
 }
 
 function stopSSE() {
-  if (_sseReconnTimer) { clearTimeout(_sseReconnTimer); _sseReconnTimer = null; }
-  if (_sseSource) { _sseSource.close(); _sseSource = null; }
+  if (_autoRefreshTimer) { clearInterval(_autoRefreshTimer); _autoRefreshTimer = null; }
 }
 
-function _connectSSE() {
-  if (_sseSource) { _sseSource.close(); _sseSource = null; }
-  _sseSource = new EventSource(`/api/events?since=${encodeURIComponent(_sseLastTs)}`);
-  _sseSource.onmessage = (e) => {
-    try {
-      const msg = JSON.parse(e.data);
-      if (msg.type === 'row_update') {
-        if (msg.data && msg.data._updated_at) _sseLastTs = msg.data._updated_at;
-        _applyRowUpdate(msg.table, msg.row_id, msg.data);
-      }
-    } catch {}
-  };
-  _sseSource.onerror = () => {
-    if (_sseSource) { _sseSource.close(); _sseSource = null; }
-    if (currentUser) _sseReconnTimer = setTimeout(_connectSSE, 3000);
-  };
-}
-
-function _applyRowUpdate(table, rid, data) {
-  if (tblState.table !== table) return;
-  for (const tr of document.querySelectorAll('#tbl-body tr')) {
-    if (!tr.querySelector(`button[onclick="openEditRow(${rid})"]`)) continue;
-    tr.querySelectorAll('td[data-col]').forEach(td => {
-      const key = td.getAttribute('data-col');
-      if (!key || !(key in data)) return;
-      const v = excelSerialToDate(String(data[key] ?? ''), key);
-      td.setAttribute('title', esc(String(v)));
-      td.innerHTML = statusBadge(key, v) || esc(truncate(v, 45));
-    });
-    const origBg = tr.getAttribute('data-bg') || '';
-    tr.style.transition = 'background 0.6s';
-    tr.querySelectorAll('[data-rb]').forEach(e => { e.style.transition = 'background 0.6s'; e.style.background = '#1e3a5f'; });
-    tr.style.background = '#1e3a5f';
-    setTimeout(() => {
-      tr.style.background = origBg;
-      tr.querySelectorAll('[data-rb]').forEach(e => e.style.background = origBg);
-    }, 800);
-    break;
-  }
+async function _checkVersion() {
+  if (!currentUser || currentTab === 'dash' || currentTab === 'admin') return;
+  if (tblState.table !== 'main_table') return;
+  try {
+    const d = await fetchJSON('/api/table_version/main_table');
+    if (!d.version) return;
+    if (_knownVersion && d.version !== _knownVersion) {
+      const scroller = document.querySelector('#view-table .overflow-auto') || document.querySelector('#tbl-body')?.closest('.overflow-auto');
+      const scrollTop = scroller ? scroller.scrollTop : 0;
+      const scrollLeft = scroller ? scroller.scrollLeft : 0;
+      await loadTable();
+      if (scroller) { scroller.scrollTop = scrollTop; scroller.scrollLeft = scrollLeft; }
+    }
+    _knownVersion = d.version;
+  } catch {}
 }
 
 
