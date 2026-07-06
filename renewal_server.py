@@ -1,8 +1,8 @@
 """
 FY26 Q3 續約總表管理系統 - Flask 後端
 """
-from flask import Flask, request, jsonify, send_from_directory, session
-import sqlite3, re, os, json, hashlib
+from flask import Flask, request, jsonify, send_from_directory, session, Response
+import sqlite3, re, os, json, hashlib, queue, threading
 from datetime import datetime, date, timedelta
 
 # Excel date serial → 'YYYY/MM/DD'
@@ -25,6 +25,22 @@ def maybe_excel_date(val_str, col_label):
     except (ValueError, TypeError):
         pass
     return val_str
+
+# ─── SSE broadcast ────────────────────────────────────────────────────────────
+_sse_clients = []
+_sse_lock = threading.Lock()
+
+def _sse_broadcast(msg: dict):
+    payload = json.dumps(msg, ensure_ascii=False)
+    with _sse_lock:
+        dead = []
+        for q in _sse_clients:
+            try:
+                q.put_nowait(payload)
+            except queue.Full:
+                dead.append(q)
+        for q in dead:
+            _sse_clients.remove(q)
 
 app = Flask(__name__, static_folder='.')
 app.config['JSON_SORT_KEYS'] = False
@@ -673,6 +689,10 @@ def api_row(table, row_id):
         set_str = ', '.join(f'"{k}"=?' for k in valid)
         conn.execute(f'UPDATE "{table}" SET {set_str} WHERE rowid=?', list(valid.values()) + [row_id])
         conn.commit()
+        # Broadcast updated row to all SSE clients
+        updated = conn.execute(f'SELECT rowid as _rid, * FROM "{table}" WHERE rowid=?', (row_id,)).fetchone()
+        if updated:
+            _sse_broadcast({'type': 'row_update', 'table': table, 'row_id': row_id, 'data': dict(updated)})
         return jsonify(ok=True)
     except Exception as e:
         return jsonify(error=str(e)), 500
@@ -814,6 +834,33 @@ def api_perm_table():
     for r in rows:
         result.setdefault(r['field_name'], {})[r['group_name']] = bool(r['has_access'])
     return jsonify(result)
+
+@app.route('/api/events')
+def api_events():
+    u = session.get('user')
+    if not u:
+        return jsonify(error='not_logged_in'), 401
+
+    def generate():
+        q = queue.Queue(maxsize=50)
+        with _sse_lock:
+            _sse_clients.append(q)
+        try:
+            yield 'data: {"type":"connected"}\n\n'
+            while True:
+                try:
+                    payload = q.get(timeout=25)
+                    yield f'data: {payload}\n\n'
+                except queue.Empty:
+                    yield ': keepalive\n\n'
+        finally:
+            with _sse_lock:
+                if q in _sse_clients:
+                    _sse_clients.remove(q)
+
+    return Response(generate(), mimetype='text/event-stream',
+                    headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'})
+
 
 @app.route('/api/perm_table/<group>/<path:field>', methods=['PUT'])
 def api_perm_update(group, field):
