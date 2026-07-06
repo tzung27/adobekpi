@@ -1257,7 +1257,6 @@ async function saveRow() {
     const d    = await res.json();
     if (!res.ok || d.error) throw new Error(d.error || '操作失敗');
     closeRowModal();
-    console.log('[save] mode=', rowModalMode, 'rid=', rowModalRid);
     if (rowModalMode === 'new') {
       await loadTable();
     } else {
@@ -1603,10 +1602,8 @@ async function _checkVersion() {
 
 function _markPencilRed(rid) {
   const tr = document.querySelector(`#tbl-body tr[data-rid="${rid}"]`);
-  console.log('[markPencilRed] rid=', rid, 'tr=', tr);
   if (!tr) return;
   const btn = tr.querySelector('button[title="編輯"]');
-  console.log('[markPencilRed] btn=', btn);
   if (btn) btn.style.cssText += ';color:#f87171!important';
 }
 
