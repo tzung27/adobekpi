@@ -160,8 +160,8 @@
       </div>
 
       <!-- Profile modal -->
-      <div id="profile-modal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-sm flex justify-center items-start">
-        <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-sm mx-4 my-8 p-6">
+      <div id="profile-modal" class="hidden fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+        <div id="profile-modal-inner" class="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-sm p-6 overflow-y-auto" style="max-height:85vh">
           <div class="flex items-center justify-between mb-5">
             <h3 class="text-base font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
               <i data-lucide="user-circle" class="w-5 h-5 text-indigo-500"></i> 個人資料
@@ -1634,9 +1634,8 @@ async function openProfileModal() {
     document.getElementById('profile-last-login').textContent = d.last_login || '—';
     document.getElementById('profile-last-logout').textContent = d.last_logout || '—';
     document.getElementById('profile-error').classList.add('hidden');
-    const pm = document.getElementById('profile-modal');
-    pm.classList.remove('hidden');
-    pm.querySelector('.overflow-y-auto') && (pm.querySelector('.overflow-y-auto').scrollTop = 0);
+    document.getElementById('profile-modal').classList.remove('hidden');
+    document.getElementById('profile-modal-inner').scrollTop = 0;
     setTimeout(() => { if (window.lucide) lucide.createIcons(); }, 50);
   } catch(e) { showToast('載入失敗', 'error'); }
 }
