@@ -686,10 +686,14 @@ def api_row(table, row_id):
         valid = {sanitize(k): v for k, v in data.items() if sanitize(k) in col_set}
         if not valid:
             return jsonify(error='no valid columns'), 400
-        now_ts = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
-        valid['_updated_at'] = now_ts
         set_str = ', '.join(f'"{k}"=?' for k in valid)
-        conn.execute(f'UPDATE "{table}" SET {set_str} WHERE rowid=?', list(valid.values()) + [row_id])
+        now_ts = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
+        # Ensure _updated_at column exists
+        tbl_cols = [r[1] for r in conn.execute(f'PRAGMA table_info("{table}")').fetchall()]
+        if '_updated_at' not in tbl_cols:
+            conn.execute(f'ALTER TABLE "{table}" ADD COLUMN _updated_at TEXT')
+        conn.execute(f'UPDATE "{table}" SET {set_str}, "_updated_at"=? WHERE rowid=?',
+                     list(valid.values()) + [now_ts, row_id])
         conn.commit()
         return jsonify(ok=True)
     except Exception as e:
