@@ -760,6 +760,13 @@ def api_profile():
     if not u:
         return jsonify(error='not_logged_in'), 401
     conn = get_db()
+    existing_cols = [r[1] for r in conn.execute('PRAGMA table_info(accounts)').fetchall()]
+    if 'last_login' not in existing_cols:
+        conn.execute('ALTER TABLE accounts ADD COLUMN last_login TEXT')
+        conn.commit()
+    if 'last_logout' not in existing_cols:
+        conn.execute('ALTER TABLE accounts ADD COLUMN last_logout TEXT')
+        conn.commit()
     row = conn.execute('SELECT id,name,email,username,group_name,last_login,last_logout FROM accounts WHERE id=?', (u['id'],)).fetchone()
     conn.close()
     return jsonify(dict(row))
