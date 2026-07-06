@@ -799,6 +799,20 @@ def api_me():
     u = session.get('user')
     if not u:
         return jsonify(error='not_logged_in'), 401
+    # Backfill last_login if missing (e.g. session survived server restart)
+    if not u.get('last_login'):
+        now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        conn = get_db()
+        existing_cols = [r[1] for r in conn.execute('PRAGMA table_info(accounts)').fetchall()]
+        if 'last_login' not in existing_cols:
+            conn.execute('ALTER TABLE accounts ADD COLUMN last_login TEXT')
+        if 'last_logout' not in existing_cols:
+            conn.execute('ALTER TABLE accounts ADD COLUMN last_logout TEXT')
+        conn.execute('UPDATE accounts SET last_login=? WHERE id=? AND last_login IS NULL', (now, u['id']))
+        conn.commit()
+        conn.close()
+        u['last_login'] = now
+        session['user'] = u
     return jsonify(u)
 
 @app.route('/api/my_permissions')
@@ -826,7 +840,7 @@ def api_accounts_list():
     err = _require_supervisor()
     if err: return err
     conn = get_db()
-    rows = conn.execute('SELECT id,name,email,username,group_name,status,notes FROM accounts ORDER BY id').fetchall()
+    rows = conn.execute('SELECT id,name,email,username,group_name,status,notes,last_login,last_logout FROM accounts ORDER BY id').fetchall()
     conn.close()
     return jsonify([dict(r) for r in rows])
 

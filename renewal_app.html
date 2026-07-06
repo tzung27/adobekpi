@@ -555,6 +555,16 @@
           <label class="block text-xs font-semibold text-slate-500 mb-1.5">備註</label>
           <input id="acc-notes" type="text" class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/40">
         </div>
+        <div id="acc-login-row" class="hidden col-span-2 grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-500 mb-1.5">最後登入</label>
+            <div id="acc-last-login" class="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs text-slate-500 dark:text-slate-400">—</div>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-500 mb-1.5">最後登出</label>
+            <div id="acc-last-logout" class="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs text-slate-500 dark:text-slate-400">—</div>
+          </div>
+        </div>
       </div>
     </div>
     <div class="flex gap-3 px-6 py-4 border-t border-slate-100 dark:border-slate-700/60">
@@ -1756,6 +1766,14 @@ function openAccountModal(row) {
   document.getElementById('acc-group').value    = row ? row.group_name : 'Renew Team';
   document.getElementById('acc-status').value   = row ? row.status : '啟用';
   document.getElementById('acc-notes').value    = row ? (row.notes||'') : '';
+  const loginRow = document.getElementById('acc-login-row');
+  if (row) {
+    loginRow.classList.remove('hidden');
+    document.getElementById('acc-last-login').textContent  = row.last_login  || '—';
+    document.getElementById('acc-last-logout').textContent = row.last_logout || '—';
+  } else {
+    loginRow.classList.add('hidden');
+  }
   document.getElementById('account-modal').classList.remove('hidden');
 }
 function closeAccountModal() { document.getElementById('account-modal').classList.add('hidden'); }
