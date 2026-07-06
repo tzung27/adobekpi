@@ -1605,8 +1605,8 @@ function _markPencilRed(rid) {
   for (const tr of document.querySelectorAll('#tbl-body tr')) {
     const btn = tr.querySelector(`button[onclick="openEditRow(${rid})"]`);
     if (!btn) continue;
-    btn.classList.remove('text-indigo-400','hover:text-indigo-200','hover:bg-indigo-500/15');
-    btn.classList.add('text-red-400','hover:text-red-300','hover:bg-red-500/15');
+    btn.style.color = '#f87171';
+    btn.style.setProperty('--tw-ring-color', 'transparent');
     break;
   }
 }
