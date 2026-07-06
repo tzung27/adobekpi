@@ -870,7 +870,7 @@ async function renderTable(rows, table) {
     const trStyle = `background:${ROW_BG};border-top:1px solid ${BORDER}`;
     const trHover = `onmouseenter="Array.from(this.querySelectorAll('[data-rb]')).forEach(e=>e.style.background='${ROW_HBG}');this.style.background='${ROW_HBG}'"
       onmouseleave="Array.from(this.querySelectorAll('[data-rb]')).forEach(e=>e.style.background='${ROW_BG}');this.style.background='${ROW_BG}'"`;
-    return `<tr data-bg="${ROW_BG}" style="${trStyle}" ${trHover}>` +
+    return `<tr data-rid="${rid}" data-bg="${ROW_BG}" style="${trStyle}" ${trHover}>` +
       visibleKeys.map((k, i) => {
         const v = excelSerialToDate(row[k] ?? '', k);
         const textCls = bodyDark ? 'color:#94a3b8' : 'color:#374151';
@@ -1602,28 +1602,23 @@ async function _checkVersion() {
 }
 
 function _markPencilRed(rid) {
-  for (const tr of document.querySelectorAll('#tbl-body tr')) {
-    const btn = tr.querySelector(`button[onclick="openEditRow(${rid})"]`);
-    if (!btn) continue;
-    btn.style.color = '#f87171';
-    btn.style.setProperty('--tw-ring-color', 'transparent');
-    break;
-  }
+  const tr = document.querySelector(`#tbl-body tr[data-rid="${rid}"]`);
+  if (!tr) return;
+  const btn = tr.querySelector('button[title="編輯"]');
+  if (btn) btn.style.color = '#f87171';
 }
 
 function _applyRowUpdate(table, rid, data) {
   if (tblState.table !== table) return;
-  for (const tr of document.querySelectorAll('#tbl-body tr')) {
-    if (!tr.querySelector(`button[onclick="openEditRow(${rid})"]`)) continue;
-    tr.querySelectorAll('td[data-col]').forEach(td => {
-      const key = td.getAttribute('data-col');
-      if (!key || !(key in data)) return;
-      const v = excelSerialToDate(String(data[key] ?? ''), key);
-      td.setAttribute('title', esc(String(v)));
-      td.innerHTML = statusBadge(key, v) || esc(truncate(v, 45));
-    });
-    break;
-  }
+  const tr = document.querySelector(`#tbl-body tr[data-rid="${rid}"]`);
+  if (!tr) return;
+  tr.querySelectorAll('td[data-col]').forEach(td => {
+    const key = td.getAttribute('data-col');
+    if (!key || !(key in data)) return;
+    const v = excelSerialToDate(String(data[key] ?? ''), key);
+    td.setAttribute('title', esc(String(v)));
+    td.innerHTML = statusBadge(key, v) || esc(truncate(v, 45));
+  });
 }
 
 
