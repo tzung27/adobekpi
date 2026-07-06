@@ -4,5 +4,6 @@ __pycache__/
 *.xlsm
 *.xltx
 *.csv
-*.txt
+sheet_info.txt
+excel_structure.txt
 .env
