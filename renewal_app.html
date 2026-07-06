@@ -1634,7 +1634,9 @@ async function openProfileModal() {
     document.getElementById('profile-last-login').textContent = d.last_login || '—';
     document.getElementById('profile-last-logout').textContent = d.last_logout || '—';
     document.getElementById('profile-error').classList.add('hidden');
-    document.getElementById('profile-modal').classList.remove('hidden');
+    const pm = document.getElementById('profile-modal');
+    pm.classList.remove('hidden');
+    pm.querySelector('.overflow-y-auto') && (pm.querySelector('.overflow-y-auto').scrollTop = 0);
     setTimeout(() => { if (window.lucide) lucide.createIcons(); }, 50);
   } catch(e) { showToast('載入失敗', 'error'); }
 }
