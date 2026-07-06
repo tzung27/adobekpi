@@ -1,0 +1,1816 @@
+<!DOCTYPE html>
+<html lang="zh-TW" class="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FY26 Q3 續約總表管理系統</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    darkMode: 'class',
+    theme: {
+      extend: {
+        colors: {
+          brand:   { 500:'#6366f1', 600:'#4f46e5' },
+          darkBg:  '#0b0f19',
+          darkCard:'#151b2c',
+        }
+      }
+    }
+  }
+</script>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.462.0/dist/umd/lucide.min.js" defer></script>
+
+<style>
+  body { font-family:'Segoe UI','Microsoft JhengHei UI','PingFang TC',-apple-system,BlinkMacSystemFont,sans-serif; transition:background-color .3s,color .3s; }
+  ::-webkit-scrollbar { width:6px; height:6px; }
+  ::-webkit-scrollbar-track { background:transparent; }
+  ::-webkit-scrollbar-thumb { background:#1e293b; border-radius:99px; }
+  html:not(.dark) ::-webkit-scrollbar-thumb { background:#cbd5e1; }
+
+  .glowing-card { position:relative; transition:all .3s cubic-bezier(.4,0,.2,1); }
+  .glowing-card::before {
+    content:''; position:absolute; inset:0; border-radius:1rem; padding:1px;
+    background:linear-gradient(135deg,rgba(99,102,241,.4),rgba(168,85,247,.1),transparent);
+    -webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);
+    -webkit-mask-composite:xor; mask-composite:exclude;
+    pointer-events:none; opacity:.7; transition:opacity .3s;
+  }
+  .glowing-card:hover::before { opacity:1; background:linear-gradient(135deg,rgba(99,102,241,.8),rgba(236,72,153,.4),transparent); }
+
+  /* Sticky table columns */
+  .sl { position:sticky; left:0; z-index:5; background:inherit; }
+  thead .sl { z-index:15; }
+  .sl::after { content:''; position:absolute; right:-3px; top:0; bottom:0; width:3px; background:linear-gradient(to right,rgba(0,0,0,.12),transparent); pointer-events:none; }
+
+  /* Toast */
+  @keyframes ti { from{transform:translateX(110%);opacity:0} to{transform:translateX(0);opacity:1} }
+  .toast-in { animation:ti .25s ease; }
+
+  /* Tab active */
+  .tab-active { background:white; color:#4f46e5; box-shadow:0 1px 4px rgba(0,0,0,.1); }
+  html.dark .tab-active { background:#1e1b4b; color:#a5b4fc; box-shadow:none; }
+
+  /* Upload drag zone */
+  #drop-zone.drag-over { border-color:#6366f1; background:rgba(99,102,241,.08); }
+
+  /* Thin progress bar at top */
+  #prog-bar { height:3px; transition:width .3s ease; }
+</style>
+</head>
+
+<body class="bg-slate-50 dark:bg-darkBg text-slate-800 dark:text-slate-100 min-h-screen antialiased overflow-x-hidden">
+
+<!-- Ambient glows -->
+<div class="fixed top-0 left-1/4 w-[500px] h-[500px] bg-indigo-600/10 rounded-full blur-[120px] pointer-events-none -z-0 dark:block hidden"></div>
+<div class="fixed bottom-10 right-10 w-[600px] h-[600px] bg-purple-600/10 rounded-full blur-[150px] pointer-events-none -z-0 dark:block hidden"></div>
+
+<!-- Progress bar -->
+<div class="fixed top-0 left-0 right-0 z-50 h-[3px] bg-transparent">
+  <div id="prog-bar" class="h-full bg-indigo-500 w-0 rounded-r-full"></div>
+</div>
+
+<!-- ══ HEADER ══ -->
+<header class="sticky top-0 z-40 backdrop-blur-xl border-b border-slate-200/50 dark:border-slate-800/80 bg-white/70 dark:bg-[#0b0f19]/80 px-6 py-4">
+  <div class="max-w-[1700px] mx-auto flex flex-wrap justify-between items-center gap-4">
+
+    <!-- Logo -->
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-purple-500 flex items-center justify-center shadow-lg shadow-indigo-500/30">
+        <i data-lucide="refresh-ccw" class="text-white w-5 h-5"></i>
+      </div>
+      <div>
+        <h1 class="text-lg font-extrabold tracking-tight bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-indigo-200 bg-clip-text text-transparent flex items-center gap-2">
+          FY26 Q3 續約總表管理系統
+          <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-500 border border-indigo-500/20">Adobe VMP</span>
+        </h1>
+        <p id="last-import-label" class="text-xs text-slate-500 dark:text-slate-500">尚未匯入資料</p>
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="flex flex-wrap items-center gap-3">
+
+      <!-- Tab switcher -->
+      <div class="bg-slate-100 dark:bg-slate-800/60 p-1 rounded-xl flex border border-slate-200/50 dark:border-slate-700/50 flex-wrap gap-0.5" id="main-tabs">
+        <button class="tab-btn tab-active" data-tab="dash" onclick="switchTab('dash')">
+          <i data-lucide="layout-dashboard" class="w-4 h-4"></i> 儀表板
+        </button>
+        <button class="tab-btn" data-tab="main" onclick="switchTab('main')">
+          <i data-lucide="table-2" class="w-4 h-4"></i> 總表(New)
+        </button>
+        <button class="tab-btn" data-tab="rbob" onclick="switchTab('rbob')">
+          <i data-lucide="database" class="w-4 h-4"></i> RBOB
+        </button>
+        <button class="tab-btn" data-tab="keyaccount" onclick="switchTab('keyaccount')">
+          <i data-lucide="star" class="w-4 h-4"></i> Key Account
+        </button>
+        <button class="tab-btn" data-tab="tongji" onclick="switchTab('tongji')">
+          <i data-lucide="file-bar-chart" class="w-4 h-4"></i> 統整報表
+        </button>
+        <button class="tab-btn" data-tab="close" onclick="switchTab('close')">
+          <i data-lucide="x-circle" class="w-4 h-4"></i> Close Summary
+        </button>
+        <button class="tab-btn" data-tab="reseller" onclick="switchTab('reseller')">
+          <i data-lucide="users" class="w-4 h-4"></i> Reseller Owner
+        </button>
+        <button id="tab-admin" class="tab-btn hidden" data-tab="admin" onclick="switchTab('admin')">
+          <i data-lucide="shield" class="w-4 h-4"></i> 帳號與權限管理
+        </button>
+      </div>
+
+      <!-- Import button (Supervisor only) -->
+      <button id="btn-import" onclick="openImport()"
+        class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-semibold text-sm shadow-lg shadow-indigo-500/20 hover:brightness-110 active:scale-95 flex items-center gap-2 transition-all">
+        <i data-lucide="upload" class="w-4 h-4"></i> 匯入 Excel
+      </button>
+
+      <!-- Refresh -->
+      <button onclick="refreshData()" title="重新整理"
+        class="p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800/80 transition-all text-slate-600 dark:text-slate-300 active:scale-95">
+        <i data-lucide="refresh-cw" class="w-5 h-5" id="refresh-icon"></i>
+      </button>
+
+      <!-- Export CSV (Supervisor only) -->
+      <button id="btn-export" onclick="exportCSV()"
+        class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-semibold text-sm shadow-lg shadow-emerald-500/10 hover:brightness-110 active:scale-95 flex items-center gap-2 transition-all">
+        <i data-lucide="file-spreadsheet" class="w-4 h-4"></i> 匯出 CSV
+      </button>
+
+      <!-- Theme -->
+      <button onclick="toggleTheme()"
+        class="p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800/80 transition-all text-slate-600 dark:text-slate-300 active:scale-95">
+        <i data-lucide="sun"  class="w-5 h-5 hidden dark:block"></i>
+        <i data-lucide="moon" class="w-5 h-5 block  dark:hidden"></i>
+      </button>
+
+      <!-- User info + logout -->
+      <div id="user-chip" class="hidden items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-600 dark:text-slate-300">
+        <i data-lucide="user-circle" class="w-4 h-4"></i>
+        <span id="user-name-label"></span>
+        <span id="user-group-badge" class="px-1.5 py-0.5 rounded-full text-[10px]"></span>
+        <button onclick="doLogout()" title="登出" class="ml-1 text-slate-400 hover:text-red-400 transition">
+          <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- Tab button styles -->
+<style>
+  .tab-btn {
+    padding: 7px 14px; border-radius: 8px; font-size: 13px; font-weight: 600;
+    display: flex; align-items: center; gap: 6px; transition: all .2s;
+    color: #64748b; cursor: pointer; border: none; background: transparent;
+  }
+  .tab-btn:hover:not(.tab-active) { color: #475569; background: rgba(0,0,0,.04); }
+  html.dark .tab-btn:hover:not(.tab-active) { color: #94a3b8; background: rgba(255,255,255,.04); }
+</style>
+
+<!-- ══ MAIN ══ -->
+<main class="max-w-[1700px] mx-auto px-6 py-8 relative z-10 space-y-0">
+
+  <!-- ─── DASHBOARD ─── -->
+  <div id="view-dash" class="space-y-8">
+
+    <!-- KPI Cards -->
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-5">
+      <div class="glowing-card col-span-1 p-5 rounded-2xl bg-white dark:bg-darkCard border border-slate-100 dark:border-slate-800/50 shadow-sm hover:-translate-y-1 transition-all duration-300">
+        <div class="p-2.5 bg-indigo-500/10 text-indigo-500 rounded-xl w-fit mb-3">
+          <i data-lucide="file-text" class="w-5 h-5"></i>
+        </div>
+        <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">總表筆數</p>
+        <h3 id="kpi-main" class="text-2xl font-extrabold text-slate-800 dark:text-white mt-1">—</h3>
+      </div>
+      <div class="glowing-card col-span-1 p-5 rounded-2xl bg-white dark:bg-darkCard border border-slate-100 dark:border-slate-800/50 shadow-sm hover:-translate-y-1 transition-all duration-300">
+        <div class="p-2.5 bg-cyan-500/10 text-cyan-500 rounded-xl w-fit mb-3">
+          <i data-lucide="database" class="w-5 h-5"></i>
+        </div>
+        <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">RBOB 筆數</p>
+        <h3 id="kpi-rbob" class="text-2xl font-extrabold text-slate-800 dark:text-white mt-1">—</h3>
+      </div>
+      <div class="glowing-card col-span-1 p-5 rounded-2xl bg-white dark:bg-darkCard border border-slate-100 dark:border-slate-800/50 shadow-sm hover:-translate-y-1 transition-all duration-300">
+        <div class="p-2.5 bg-star-500/10 text-amber-500 rounded-xl w-fit mb-3">
+          <i data-lucide="star" class="w-5 h-5"></i>
+        </div>
+        <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Key Account</p>
+        <h3 id="kpi-ka" class="text-2xl font-extrabold text-slate-800 dark:text-white mt-1">—</h3>
+      </div>
+      <div class="glowing-card col-span-1 p-5 rounded-2xl bg-white dark:bg-darkCard border border-slate-100 dark:border-slate-800/50 shadow-sm hover:-translate-y-1 transition-all duration-300">
+        <div class="p-2.5 bg-emerald-500/10 text-emerald-500 rounded-xl w-fit mb-3">
+          <i data-lucide="trending-up" class="w-5 h-5"></i>
+        </div>
+        <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">統整報表</p>
+        <h3 id="kpi-tongji" class="text-2xl font-extrabold text-slate-800 dark:text-white mt-1">—</h3>
+      </div>
+      <div class="glowing-card col-span-1 p-5 rounded-2xl bg-white dark:bg-darkCard border border-slate-100 dark:border-slate-800/50 shadow-sm hover:-translate-y-1 transition-all duration-300">
+        <div class="p-2.5 bg-pink-500/10 text-pink-500 rounded-xl w-fit mb-3">
+          <i data-lucide="check-circle" class="w-5 h-5"></i>
+        </div>
+        <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Closed 筆數</p>
+        <h3 id="kpi-closed" class="text-2xl font-extrabold text-slate-800 dark:text-white mt-1">—</h3>
+      </div>
+      <div class="glowing-card col-span-1 p-5 rounded-2xl bg-white dark:bg-darkCard border border-slate-100 dark:border-slate-800/50 shadow-sm hover:-translate-y-1 transition-all duration-300">
+        <div class="p-2.5 bg-rose-500/10 text-rose-500 rounded-xl w-fit mb-3">
+          <i data-lucide="alert-triangle" class="w-5 h-5"></i>
+        </div>
+        <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">流失 (Attrition)</p>
+        <h3 id="kpi-attrition" class="text-2xl font-extrabold text-slate-800 dark:text-white mt-1">—</h3>
+      </div>
+    </div>
+
+    <!-- Charts row -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <!-- 進度分佈 -->
+      <div class="p-6 rounded-2xl bg-white dark:bg-darkCard border border-slate-200/50 dark:border-slate-800/50 shadow-sm">
+        <h4 class="text-sm font-bold text-slate-700 dark:text-white mb-4 flex items-center gap-2">
+          <span class="w-1.5 h-4 bg-indigo-500 rounded-full"></span> 進度分佈
+        </h4>
+        <canvas id="chart-status" class="max-h-56"></canvas>
+      </div>
+      <!-- Owner分佈 -->
+      <div class="p-6 rounded-2xl bg-white dark:bg-darkCard border border-slate-200/50 dark:border-slate-800/50 shadow-sm">
+        <h4 class="text-sm font-bold text-slate-700 dark:text-white mb-4 flex items-center gap-2">
+          <span class="w-1.5 h-4 bg-purple-500 rounded-full"></span> Owner 分佈
+        </h4>
+        <div id="chart-owner" class="space-y-2 max-h-56 overflow-y-auto pr-1"></div>
+      </div>
+      <!-- 市場別分佈 -->
+      <div class="p-6 rounded-2xl bg-white dark:bg-darkCard border border-slate-200/50 dark:border-slate-800/50 shadow-sm">
+        <h4 class="text-sm font-bold text-slate-700 dark:text-white mb-4 flex items-center gap-2">
+          <span class="w-1.5 h-4 bg-cyan-500 rounded-full"></span> 市場別分佈
+        </h4>
+        <canvas id="chart-market" class="max-h-56"></canvas>
+      </div>
+    </div>
+
+    <!-- Charts row 2 -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <!-- 部門別 -->
+      <div class="p-6 rounded-2xl bg-white dark:bg-darkCard border border-slate-200/50 dark:border-slate-800/50 shadow-sm">
+        <h4 class="text-sm font-bold text-slate-700 dark:text-white mb-4 flex items-center gap-2">
+          <span class="w-1.5 h-4 bg-emerald-500 rounded-full"></span> 部門別統計
+        </h4>
+        <div id="chart-dept" class="space-y-2"></div>
+      </div>
+      <!-- 經銷商 TOP 15 -->
+      <div class="p-6 rounded-2xl bg-white dark:bg-darkCard border border-slate-200/50 dark:border-slate-800/50 shadow-sm">
+        <h4 class="text-sm font-bold text-slate-700 dark:text-white mb-4 flex items-center gap-2">
+          <span class="w-1.5 h-4 bg-amber-500 rounded-full"></span> 經銷商 TOP 15
+        </h4>
+        <div id="chart-reseller" class="space-y-2 max-h-72 overflow-y-auto pr-1"></div>
+      </div>
+    </div>
+
+    <!-- Import log -->
+    <div class="p-6 rounded-2xl bg-white dark:bg-darkCard border border-slate-200/50 dark:border-slate-800/50 shadow-sm">
+      <h4 class="text-sm font-bold text-slate-700 dark:text-white mb-4 flex items-center gap-2">
+        <span class="w-1.5 h-4 bg-slate-400 rounded-full"></span> 匯入記錄
+      </h4>
+      <div id="import-log" class="text-xs text-slate-400">載入中…</div>
+    </div>
+  </div>
+
+  <!-- ─── ADMIN VIEW ─── -->
+  <div id="view-admin" class="hidden space-y-6">
+
+    <!-- 帳號明細 -->
+    <div class="bg-white dark:bg-darkCard rounded-2xl border border-slate-200/60 dark:border-slate-700/50 shadow-sm overflow-hidden">
+      <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-700/60 flex items-center justify-between">
+        <h3 class="font-bold text-slate-700 dark:text-white flex items-center gap-2">
+          <i data-lucide="users" class="w-4 h-4 text-indigo-400"></i> 帳號明細
+        </h3>
+        <button onclick="openAccountModal(null)" class="px-3 py-1.5 rounded-xl bg-indigo-500 text-white text-xs font-semibold hover:bg-indigo-600 transition flex items-center gap-1.5">
+          <i data-lucide="plus" class="w-3.5 h-3.5"></i> 新增帳號
+        </button>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-xs">
+          <thead class="text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/60">
+            <tr>
+              <th class="px-4 py-3 text-left font-semibold">姓名</th>
+              <th class="px-4 py-3 text-left font-semibold">帳號</th>
+              <th class="px-4 py-3 text-left font-semibold">E-mail</th>
+              <th class="px-4 py-3 text-left font-semibold">群組</th>
+              <th class="px-4 py-3 text-left font-semibold">狀態</th>
+              <th class="px-4 py-3 text-left font-semibold">備註</th>
+              <th class="px-4 py-3 text-center font-semibold">操作</th>
+            </tr>
+          </thead>
+          <tbody id="accounts-tbody" class="divide-y divide-slate-100 dark:divide-slate-700/50"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 欄位權限控制表 -->
+    <div class="bg-white dark:bg-darkCard rounded-2xl border border-slate-200/60 dark:border-slate-700/50 shadow-sm overflow-hidden">
+      <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-700/60 flex items-center justify-between gap-3">
+        <h3 class="font-bold text-slate-700 dark:text-white flex items-center gap-2">
+          <i data-lucide="shield" class="w-4 h-4 text-amber-400"></i> 欄位權限控制表
+          <span class="text-xs font-normal text-slate-400">（👁 顯示 ／ ✏️ 可編輯，僅 Supervisor 可修改）</span>
+        </h3>
+        <button id="btn-perm-lock" onclick="togglePermLock()" class="hidden items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all">
+          <i data-lucide="lock" class="w-3.5 h-3.5"></i>
+          <span id="btn-perm-lock-label">解鎖編輯</span>
+        </button>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-xs" id="perm-table">
+          <thead class="text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/60">
+            <tr id="perm-thead-row"></tr>
+            <tr id="perm-subhead-row" class="hidden"></tr>
+          </thead>
+          <tbody id="perm-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── DATA VIEWS (總表/RBOB/Key Account/統整報表/Close/Reseller) ─── -->
+  <div id="view-table" class="hidden space-y-4">
+
+    <!-- ── 總表 toolbar (editable mode) ── -->
+    <div id="main-toolbar" class="hidden space-y-2">
+      <!-- Row 1: search + filters + new button -->
+      <div class="flex flex-wrap gap-2 items-center bg-white/60 dark:bg-slate-800/40 px-4 py-3 rounded-2xl border border-slate-200/50 dark:border-slate-700/40 backdrop-blur-md">
+        <div class="relative flex-1 min-w-[200px]">
+          <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"></i>
+          <input id="tbl-search" type="text" placeholder="搜尋 部門別、展碁業務、經銷商、客戶名稱…"
+            class="w-full pl-9 pr-4 py-2 rounded-xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/40 text-slate-700 dark:text-slate-200"
+            oninput="debounceSearch()">
+        </div>
+        <select id="filter-status" onchange="applyFilters()"
+          class="text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 px-3 py-2 min-w-[130px] focus:outline-none focus:ring-2 focus:ring-indigo-500/40">
+          <option value="">所有 Status</option>
+        </select>
+        <select id="filter-market" onchange="applyFilters()"
+          class="text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 px-3 py-2 min-w-[110px] focus:outline-none focus:ring-2 focus:ring-indigo-500/40">
+          <option value="">所有市場別</option>
+        </select>
+        <select id="filter-owner" onchange="applyFilters()"
+          class="text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 px-3 py-2 min-w-[110px] focus:outline-none focus:ring-2 focus:ring-indigo-500/40">
+          <option value="">所有 Owner</option>
+        </select>
+        <button id="btn-add-row" onclick="openNewRow()"
+          class="ml-auto px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-semibold text-sm shadow-lg shadow-indigo-500/20 hover:brightness-110 active:scale-95 flex items-center gap-2 transition-all whitespace-nowrap">
+          <i data-lucide="plus" class="w-4 h-4"></i> 新增資料
+        </button>
+      </div>
+      <!-- Row 2: count + pager -->
+      <div class="flex items-center gap-2 px-1">
+        <span id="tbl-count" class="text-sm font-semibold text-slate-500 dark:text-slate-400">— 筆</span>
+        <div class="flex-1"></div>
+        <button onclick="tblPrev()" class="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition text-slate-500 dark:text-slate-400">
+          <i data-lucide="chevron-left" class="w-4 h-4"></i>
+        </button>
+        <span id="tbl-page-label" class="text-xs text-slate-500 whitespace-nowrap">第 1 頁</span>
+        <button onclick="tblNext()" class="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition text-slate-500 dark:text-slate-400">
+          <i data-lucide="chevron-right" class="w-4 h-4"></i>
+        </button>
+        <select id="tbl-limit" onchange="tblState.page=1;tblState.limit=parseInt(this.value);loadTable()" class="text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2 py-1.5">
+          <option value="50">50 筆</option>
+          <option value="100" selected>100 筆</option>
+          <option value="200">200 筆</option>
+          <option value="500">500 筆</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- ── Generic toolbar (other tabs) ── -->
+    <div id="generic-toolbar" class="hidden">
+      <div class="flex flex-wrap gap-3 items-center bg-white/50 dark:bg-slate-800/30 p-4 rounded-2xl border border-slate-200/50 dark:border-slate-700/30 backdrop-blur-md">
+        <div class="relative flex-1 min-w-[200px]">
+          <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"></i>
+          <input id="tbl-search-gen" type="text" placeholder="搜尋…"
+            class="w-full pl-9 pr-4 py-2 rounded-xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/40 text-slate-700 dark:text-slate-200"
+            oninput="debounceSearchGen()">
+        </div>
+        <span id="tbl-count-gen" class="text-xs text-slate-400 font-medium whitespace-nowrap">— 筆</span>
+        <button onclick="tblPrev()" class="p-2 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition text-slate-500 dark:text-slate-400">
+          <i data-lucide="chevron-left" class="w-4 h-4"></i>
+        </button>
+        <span id="tbl-page-label-gen" class="text-xs text-slate-500 whitespace-nowrap">第 1 頁</span>
+        <button onclick="tblNext()" class="p-2 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition text-slate-500 dark:text-slate-400">
+          <i data-lucide="chevron-right" class="w-4 h-4"></i>
+        </button>
+        <select id="tbl-limit-gen" onchange="tblState.page=1;tblState.limit=parseInt(this.value);loadTable()" class="text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2 py-2">
+          <option value="50">50 筆</option>
+          <option value="100" selected>100 筆</option>
+          <option value="200">200 筆</option>
+          <option value="500">500 筆</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Table wrapper -->
+    <div class="rounded-2xl border border-slate-200/50 dark:border-slate-800/50 overflow-hidden shadow-sm">
+      <div id="tbl-wrapper" class="overflow-x-auto max-h-[65vh] overflow-y-auto">
+        <table id="data-table" class="w-full text-sm border-collapse">
+          <thead id="tbl-head" class="sticky top-0 z-10 text-xs font-semibold uppercase tracking-wider"></thead>
+          <tbody id="tbl-body" class="divide-y divide-slate-100 dark:divide-slate-800/50"></tbody>
+        </table>
+        <div id="tbl-empty" class="hidden p-16 text-center text-slate-400 text-sm">
+          <i data-lucide="inbox" class="w-12 h-12 mx-auto mb-3 opacity-30"></i>
+          <p>尚無資料，請先匯入 Excel 檔案</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- ══ LOGIN MODAL ══ -->
+<div id="login-modal" class="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm">
+  <div class="w-full max-w-sm bg-white dark:bg-darkCard rounded-2xl shadow-2xl border border-slate-200/60 dark:border-slate-700/50 p-8">
+    <div class="flex flex-col items-center gap-2 mb-7">
+      <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-indigo-600 to-purple-500 flex items-center justify-center shadow-lg shadow-indigo-500/30 mb-1">
+        <i data-lucide="lock" class="text-white w-7 h-7"></i>
+      </div>
+      <h2 class="text-xl font-extrabold text-slate-800 dark:text-white">FY26 Q3 續約管理系統</h2>
+      <p class="text-xs text-slate-400">請輸入帳號與密碼以繼續</p>
+    </div>
+    <div class="space-y-4">
+      <div>
+        <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5">帳號</label>
+        <input id="login-username" type="text" placeholder="輸入帳號" autocomplete="username"
+          class="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+          onkeydown="if(event.key==='Enter')document.getElementById('login-password').focus()">
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5">密碼</label>
+        <input id="login-password" type="password" placeholder="輸入密碼" autocomplete="current-password"
+          class="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+          onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+      <p id="login-error" class="hidden text-xs text-red-500 font-semibold text-center"></p>
+      <button onclick="doLogin()"
+        class="w-full py-2.5 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-bold text-sm shadow-lg hover:brightness-110 active:scale-95 transition-all mt-1">
+        登入
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ ACCOUNT MODAL ══ -->
+<div id="account-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+  <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="closeAccountModal()"></div>
+  <div class="relative w-full max-w-md bg-white dark:bg-darkCard rounded-2xl shadow-2xl border border-slate-200/60 dark:border-slate-700/50 flex flex-col max-h-[90vh]">
+    <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-700/60 flex items-center justify-between">
+      <h3 id="account-modal-title" class="text-base font-bold text-slate-800 dark:text-white"></h3>
+      <button onclick="closeAccountModal()" class="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 transition">✕</button>
+    </div>
+    <div class="overflow-y-auto p-6 space-y-4 flex-1">
+      <div class="grid grid-cols-2 gap-3">
+        <div class="col-span-2">
+          <label class="block text-xs font-semibold text-slate-500 mb-1.5">姓名</label>
+          <input id="acc-name" type="text" class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/40">
+        </div>
+        <div class="col-span-2">
+          <label class="block text-xs font-semibold text-slate-500 mb-1.5">E-mail</label>
+          <input id="acc-email" type="email" class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/40">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 mb-1.5">帳號</label>
+          <input id="acc-username" type="text" class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/40">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 mb-1.5">密碼<span id="acc-pw-hint" class="font-normal text-slate-400">（留空=不更改）</span></label>
+          <input id="acc-password" type="password" class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/40">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 mb-1.5">群組</label>
+          <select id="acc-group" class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/40">
+            <option>Supervisor</option>
+            <option>Renew Team</option>
+            <option>Call out Team</option>
+            <option>BD Team</option>
+            <option>Adobe 原廠</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 mb-1.5">狀態</label>
+          <select id="acc-status" class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/40">
+            <option>啟用</option>
+            <option>停用</option>
+          </select>
+        </div>
+        <div class="col-span-2">
+          <label class="block text-xs font-semibold text-slate-500 mb-1.5">備註</label>
+          <input id="acc-notes" type="text" class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/40">
+        </div>
+      </div>
+    </div>
+    <div class="flex gap-3 px-6 py-4 border-t border-slate-100 dark:border-slate-700/60">
+      <button onclick="closeAccountModal()" class="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-500 font-semibold text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition">取消</button>
+      <button onclick="saveAccount()" class="flex-1 py-2.5 rounded-xl bg-indigo-500 text-white font-bold text-sm hover:bg-indigo-600 transition">儲存</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ IMPORT MODAL ══ -->
+<div id="import-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+  <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="closeImport()"></div>
+  <div class="relative w-full max-w-lg bg-white dark:bg-darkCard rounded-2xl shadow-2xl p-8 border border-slate-200/50 dark:border-slate-800/50">
+    <button onclick="closeImport()" class="absolute top-4 right-4 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 transition">
+      <i data-lucide="x" class="w-5 h-5"></i>
+    </button>
+    <h3 class="text-xl font-bold text-slate-800 dark:text-white mb-2 flex items-center gap-2">
+      <i data-lucide="upload" class="w-5 h-5 text-indigo-500"></i> 匯入 Excel
+    </h3>
+    <p class="text-sm text-slate-500 mb-6">上傳 FY26_Q3_續約總表 Excel 檔案，系統將自動讀取「總表(New)」及其他工作表並寫入資料庫。</p>
+
+    <!-- Drag & drop zone -->
+    <div id="drop-zone"
+      class="border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-xl p-8 text-center cursor-pointer hover:border-indigo-400 transition-colors mb-4"
+      onclick="document.getElementById('file-input').click()"
+      ondragover="event.preventDefault();this.classList.add('drag-over')"
+      ondragleave="this.classList.remove('drag-over')"
+      ondrop="handleDrop(event)">
+      <i data-lucide="file-spreadsheet" class="w-10 h-10 mx-auto mb-3 text-slate-300 dark:text-slate-600"></i>
+      <p class="text-sm font-semibold text-slate-500 dark:text-slate-400">點擊選擇或拖曳 .xlsx 檔案</p>
+      <p id="drop-filename" class="text-xs text-indigo-400 mt-1"></p>
+    </div>
+    <input id="file-input" type="file" accept=".xlsx" class="hidden" onchange="handleFileSelect(event)">
+
+    <!-- Or use default -->
+    <div class="flex items-center gap-3 mb-6">
+      <div class="flex-1 h-px bg-slate-200 dark:bg-slate-700"></div>
+      <span class="text-xs text-slate-400">或</span>
+      <div class="flex-1 h-px bg-slate-200 dark:bg-slate-700"></div>
+    </div>
+    <button onclick="importDefault()"
+      class="w-full py-2.5 rounded-xl border border-indigo-500/40 text-indigo-500 dark:text-indigo-400 font-semibold text-sm hover:bg-indigo-500/5 transition flex items-center justify-center gap-2">
+      <i data-lucide="folder-open" class="w-4 h-4"></i>
+      使用預設路徑：FY26_Q3_續約總表_範例.xlsx
+    </button>
+
+    <!-- Import progress -->
+    <div id="import-progress" class="hidden mt-5 space-y-3">
+      <div class="flex items-center gap-3">
+        <div id="import-spinner" class="w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+        <span id="import-msg" class="text-sm text-slate-600 dark:text-slate-300">匯入中…</span>
+      </div>
+      <div class="bg-slate-100 dark:bg-slate-800 rounded-full h-2 overflow-hidden">
+        <div id="import-bar" class="h-full bg-indigo-500 rounded-full transition-all duration-500" style="width:0%"></div>
+      </div>
+    </div>
+
+    <!-- Result -->
+    <div id="import-result" class="hidden mt-5 p-4 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/50">
+      <p class="text-sm font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-2">
+        <i data-lucide="check-circle" class="w-4 h-4"></i> 匯入成功
+      </p>
+      <div id="import-result-body" class="text-xs text-emerald-600 dark:text-emerald-500 mt-1 space-y-0.5"></div>
+    </div>
+
+    <div id="import-error" class="hidden mt-5 p-4 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/50 text-xs text-red-600 dark:text-red-400 font-mono overflow-auto max-h-32"></div>
+
+    <div class="flex gap-3 mt-6">
+      <button onclick="closeImport()" class="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 font-semibold text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition">取消</button>
+      <button id="do-import-btn" onclick="doImport()"
+        class="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-semibold text-sm shadow-lg shadow-indigo-500/20 hover:brightness-110 active:scale-95 flex items-center justify-center gap-2 transition-all">
+        <i data-lucide="upload" class="w-4 h-4"></i> 開始匯入
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ ROW EDIT MODAL ══ -->
+<div id="row-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+  <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="closeRowModal()"></div>
+  <div class="relative w-full max-w-3xl bg-white dark:bg-darkCard rounded-2xl shadow-2xl border border-slate-200/50 dark:border-slate-800/50 flex flex-col max-h-[90vh]">
+    <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800 shrink-0">
+      <h3 id="row-modal-title" class="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2">
+        <i data-lucide="edit-3" class="w-5 h-5 text-indigo-500"></i> 編輯資料
+      </h3>
+      <button onclick="closeRowModal()" class="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 transition">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+    </div>
+    <div id="row-modal-body" class="overflow-y-auto p-6 flex-1 space-y-6"></div>
+    <div class="flex gap-3 px-6 py-4 border-t border-slate-100 dark:border-slate-800 shrink-0">
+      <button onclick="closeRowModal()" class="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 font-semibold text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition">取消</button>
+      <button onclick="saveRow()"
+        class="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-semibold text-sm shadow-lg shadow-indigo-500/20 hover:brightness-110 active:scale-95 flex items-center justify-center gap-2 transition-all">
+        <i data-lucide="save" class="w-4 h-4"></i> 儲存
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ TOAST ══ -->
+<div id="toast-container" class="fixed bottom-6 right-6 z-50 space-y-2"></div>
+
+<!-- ══ SCRIPT ══ -->
+<script>
+const API = '';  // same origin
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let currentTab = 'dash';
+let tblState = { table:'main_table', page:1, limit:100, q:'', total:0, filters:{} };
+let charts = {};
+let pendingFile = null;
+let searchTimer = null;
+let rowModalMode = null;  // 'new' | 'edit'
+let rowModalRid  = null;
+let rowModalCols = [];    // [{col_key, col_label}]
+
+const TABLE_MAP = {
+  main:       { table:'main_table',    label:'總表(New)' },
+  rbob:       { table:'rbob',          label:'RBOB' },
+  keyaccount: { table:'key_account',   label:'Key Account' },
+  tongji:     { table:'tongji',        label:'統整報表' },
+  close:      { table:'close_summary', label:'Close Summary' },
+  reseller:   { table:'reseller_owner',label:'Reseller Owner' },
+};
+
+const STATUS_COLORS = [
+  '#6366f1','#8b5cf6','#a78bfa','#06b6d4','#10b981',
+  '#f59e0b','#ef4444','#f97316','#ec4899','#14b8a6'
+];
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  setTimeout(() => {
+    if (window.lucide) lucide.createIcons();
+    loadStats();
+    loadImportLog();
+  }, 100);
+});
+
+// ── Theme ─────────────────────────────────────────────────────────────────────
+function toggleTheme() {
+  document.documentElement.classList.toggle('dark');
+  localStorage.setItem('theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+  // Re-render table so sticky column backgrounds match new theme
+  if (currentTab !== 'dash') loadTable();
+}
+if (localStorage.getItem('theme') === 'light') document.documentElement.classList.remove('dark');
+
+// ── Tab switching ─────────────────────────────────────────────────────────────
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('tab-active', b.dataset.tab === tab));
+
+  const isDash  = tab === 'dash';
+  const isAdmin = tab === 'admin';
+  document.getElementById('view-dash').classList.toggle('hidden', !isDash);
+  document.getElementById('view-table').classList.toggle('hidden', isDash || isAdmin);
+  document.getElementById('view-admin').classList.toggle('hidden', !isAdmin);
+
+  if (isAdmin) { loadAdminTab(); setTimeout(()=>{ if(window.lucide)lucide.createIcons(); },50); return; }
+
+  const isMain = tab === 'main';
+  document.getElementById('main-toolbar').classList.toggle('hidden', !isMain);
+  document.getElementById('generic-toolbar').classList.toggle('hidden', isMain || isDash);
+
+  if (!isDash) {
+    const info = TABLE_MAP[tab];
+    if (info) {
+      tblState.table   = info.table;
+      tblState.page    = 1;
+      tblState.q       = '';
+      tblState.filters = {};
+      if (isMain) {
+        const s = document.getElementById('tbl-search');
+        if (s) s.value = '';
+        resetFilters();
+        loadFilterOptions();
+      } else {
+        const s = document.getElementById('tbl-search-gen');
+        if (s) s.value = '';
+      }
+      loadTable();
+    }
+  }
+
+  setTimeout(() => { if (window.lucide) lucide.createIcons(); }, 50);
+}
+
+// ── Stats / Dashboard ─────────────────────────────────────────────────────────
+async function loadStats() {
+  try {
+    const data = await fetchJSON('/api/stats');
+    renderStats(data);
+  } catch(e) {
+    console.error('Stats error', e);
+  }
+}
+
+function renderStats(d) {
+  setText('kpi-main',      fmt(d.total));
+  setText('kpi-rbob',      fmt(d.rbob_total));
+  setText('kpi-ka',        fmt(d.key_account_total));
+  setText('kpi-tongji',    fmt(d.tongji_total));
+
+  // Count Closed and Attrition from by_status
+  let closed = 0, attrition = 0;
+  (d.by_status || []).forEach(r => {
+    const s = (r.s || '').toLowerCase();
+    if (s.includes('closed') || s.includes('close')) closed += r.n;
+    if (s.includes('true_cancel') || s.includes('attrition')) attrition += r.n;
+  });
+  setText('kpi-closed',    fmt(closed));
+  setText('kpi-attrition', fmt(attrition));
+
+  if (d.last_import) {
+    document.getElementById('last-import-label').textContent =
+      `最後匯入：${d.last_import.filename}  ${d.last_import.imported_at}`;
+  }
+
+  renderStatusChart(d.by_status || []);
+  renderBarList('chart-owner',   d.by_owner   || [], '#8b5cf6');
+  renderBarList('chart-dept',    d.by_dept    || [], '#10b981');
+  renderBarList('chart-reseller',d.by_reseller|| [], '#f59e0b');
+  renderMarketChart(d.by_market || []);
+}
+
+function renderStatusChart(rows) {
+  const ctx = document.getElementById('chart-status');
+  if (!ctx || !window.Chart) return;
+  if (charts.status) charts.status.destroy();
+  if (!rows.length) return;
+  charts.status = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: rows.map(r => r.s || '(空)'),
+      datasets: [{ data: rows.map(r => r.n), backgroundColor: STATUS_COLORS, borderWidth: 0 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position:'bottom', labels:{ color: isDark() ? '#94a3b8':'#475569', font:{size:11}, padding:8 } }
+      }
+    }
+  });
+}
+
+function renderMarketChart(rows) {
+  const ctx = document.getElementById('chart-market');
+  if (!ctx || !window.Chart) return;
+  if (charts.market) charts.market.destroy();
+  if (!rows.length) return;
+  charts.market = new Chart(ctx, {
+    type: 'pie',
+    data: {
+      labels: rows.map(r => r.s || '(空)'),
+      datasets: [{ data: rows.map(r => r.n), backgroundColor: STATUS_COLORS.slice(3), borderWidth: 0 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position:'bottom', labels:{ color: isDark() ? '#94a3b8':'#475569', font:{size:11}, padding:8 } }
+      }
+    }
+  });
+}
+
+function renderBarList(elId, rows, color) {
+  const el = document.getElementById(elId);
+  if (!el || !rows.length) { if(el) el.innerHTML = '<p class="text-xs text-slate-400">無資料</p>'; return; }
+  const max = Math.max(...rows.map(r => r.n), 1);
+  el.innerHTML = rows.map(r => `
+    <div class="flex items-center gap-2 text-xs">
+      <span class="text-slate-500 dark:text-slate-400 w-32 truncate shrink-0" title="${esc(r.s)}">${esc(r.s) || '(空)'}</span>
+      <div class="flex-1 bg-slate-100 dark:bg-slate-800 rounded-full h-2 overflow-hidden">
+        <div class="h-full rounded-full" style="width:${Math.round(r.n/max*100)}%;background:${color}"></div>
+      </div>
+      <span class="text-slate-600 dark:text-slate-300 font-semibold w-8 text-right">${r.n}</span>
+    </div>`).join('');
+}
+
+// ── Table ─────────────────────────────────────────────────────────────────────
+async function loadTable() {
+  const { table, page, limit, q, filters } = tblState;
+  showProgress();
+  try {
+    let url = `/api/data/${table}?page=${page}&limit=${limit}`;
+    if (q) url += '&q=' + encodeURIComponent(q);
+    for (const [k, v] of Object.entries(filters)) {
+      if (v) url += `&f_${encodeURIComponent(k)}=${encodeURIComponent(v)}`;
+    }
+    const data = await fetchJSON(url);
+    tblState.total = data.total;
+    renderTable(data.rows, table);
+    updatePager(data.total, page, limit);
+  } catch(e) {
+    showToast('載入資料失敗：' + e.message, 'error');
+  }
+  hideProgress();
+}
+
+async function renderTable(rows, table) {
+  const head = document.getElementById('tbl-head');
+  const body = document.getElementById('tbl-body');
+  const empty = document.getElementById('tbl-empty');
+  const isMain = table === 'main_table';
+
+  if (!rows.length) {
+    head.innerHTML = '';
+    body.innerHTML = '';
+    empty.classList.remove('hidden');
+    setTimeout(() => { if (window.lucide) lucide.createIcons(); }, 50);
+    return;
+  }
+  empty.classList.add('hidden');
+
+  // Fetch column labels
+  let colMeta = [];
+  try { colMeta = await fetchJSON(`/api/columns/${table}`); } catch {}
+  if (isMain) rowModalCols = colMeta;
+  const keyToLabel = {};
+  colMeta.forEach(c => { keyToLabel[c.col_key] = c.col_label || c.col_key; });
+
+  // Build display keys (exclude _rid)
+  const keys = Object.keys(rows[0]).filter(k => k !== '_rid' && k !== 'id');
+
+  // Detect theme from body background
+  const _bodyDark = parseInt(getComputedStyle(document.body).backgroundColor.split(',')[2]) < 100;
+  const _HEAD_BG  = _bodyDark ? '#0d111e' : '#f1f5f9';
+  const _HEAD_CLR = _bodyDark ? '#64748b' : '#64748b';
+  const _ABORD    = _bodyDark ? 'rgba(0,0,0,.22)' : 'rgba(0,0,0,.08)';
+
+  // Filter out columns the current user has no access to
+  const visibleKeys = keys.filter(k => !currentUser || myPerms[k] !== false);
+
+  head.style.background = _HEAD_BG;
+  const actionTh = isMain ? `<th class="px-3 py-2.5 text-center whitespace-nowrap sticky right-0" style="z-index:15;background:${_HEAD_BG};box-shadow:-4px 0 14px ${_ABORD}">操作</th>` : '';
+  head.innerHTML = '<tr>' +
+    visibleKeys.map((k, i) => {
+      const label = esc(keyToLabel[k] || k);
+      return `<th class="px-3 py-2.5 text-left whitespace-nowrap" style="color:${_HEAD_CLR}" data-ci="${i}" title="${label}">${label}</th>`;
+    }).join('') + actionTh + '</tr>';
+
+  // Body
+  const bodyDark = parseInt(getComputedStyle(document.body).backgroundColor.split(',')[2]) < 100;
+  const ROW_BG  = bodyDark ? '#151b2c' : '#ffffff';
+  const ROW_HBG = bodyDark ? '#1c2540' : '#f0f4ff';
+  const HEAD_BG = bodyDark ? '#0d111e' : '#f1f5f9';
+  const BORDER  = bodyDark ? 'rgba(255,255,255,.05)' : 'rgba(0,0,0,.06)';
+
+  body.innerHTML = rows.map((row) => {
+    const rid = row['_rid'];
+    const actionTd = isMain ? `
+      <td class="px-3 py-2 text-center whitespace-nowrap sticky right-0" style="z-index:5;background:${ROW_BG};box-shadow:-4px 0 14px rgba(0,0,0,${bodyDark?'.22':'.06'})">
+        <div class="flex items-center justify-center gap-1">
+          <button onclick="openEditRow(${rid})" title="編輯"
+            class="p-1.5 rounded-lg text-indigo-400 hover:text-indigo-200 hover:bg-indigo-500/15 transition">
+            <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+          </button>
+          <button onclick="deleteRow(${rid})" title="刪除"
+            class="p-1.5 rounded-lg text-red-400 hover:text-red-300 hover:bg-red-500/15 transition">
+            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+      </td>` : '';
+    const trStyle = `background:${ROW_BG};border-top:1px solid ${BORDER}`;
+    const trHover = `onmouseenter="Array.from(this.querySelectorAll('[data-rb]')).forEach(e=>e.style.background='${ROW_HBG}');this.style.background='${ROW_HBG}'"
+      onmouseleave="Array.from(this.querySelectorAll('[data-rb]')).forEach(e=>e.style.background='${ROW_BG}');this.style.background='${ROW_BG}'"`;
+    return `<tr data-bg="${ROW_BG}" style="${trStyle}" ${trHover}>` +
+      visibleKeys.map((k, i) => {
+        const v = excelSerialToDate(row[k] ?? '', k);
+        const textCls = bodyDark ? 'color:#94a3b8' : 'color:#374151';
+        const cellHtml = statusBadge(k, v) || esc(truncate(v, 45));
+        return `<td data-rb="1" data-ci="${i}" data-col="${esc(k)}" style="background:${ROW_BG};${textCls}" class="px-3 py-2 whitespace-nowrap text-xs" title="${esc(String(v))}">${cellHtml}</td>`;
+      }).join('') + actionTd + '</tr>';
+  }).join('');
+
+  // Sticky first 3 cols
+  requestAnimationFrame(() => {
+    const FREEZE = Math.min(3, visibleKeys.length);
+    const ths = document.querySelectorAll('#tbl-head th');
+    const offsets = [];
+    let acc = 0;
+    for (let i = 0; i < FREEZE; i++) {
+      offsets.push(acc);
+      acc += ths[i] ? ths[i].offsetWidth : 0;
+    }
+    ths.forEach(th => {
+      const ci = parseInt(th.dataset.ci);
+      if (!isNaN(ci) && ci < FREEZE) {
+        th.style.position = 'sticky';
+        th.style.left = offsets[ci] + 'px';
+        th.style.zIndex = '15';
+        th.style.background = HEAD_BG;
+      }
+    });
+    document.querySelectorAll('#tbl-body tr').forEach(tr => {
+      const bg = tr.dataset.bg;
+      tr.querySelectorAll('td[data-ci]').forEach(td => {
+        const ci = parseInt(td.dataset.ci);
+        if (!isNaN(ci) && ci < FREEZE) {
+          td.style.position = 'sticky';
+          td.style.left = offsets[ci] + 'px';
+          td.style.zIndex = '5';
+          td.style.background = bg;
+        }
+      });
+    });
+  });
+
+  setTimeout(() => { if (window.lucide) lucide.createIcons(); }, 50);
+}
+
+function statusBadge(key, val) {
+  if (!val) return null;
+  const lk  = key.toLowerCase().replace(/[_\s]/g,'');
+  const lv  = String(val).toLowerCase();
+  const txt = esc(val);
+
+  // 進度 column (main workflow status)
+  if (lk === '進度' || lk === 'status') {
+    let s = 'rgba(100,116,139,.18):#94a3b8'; // default gray
+    if (lv.includes('close') && !lv.includes('below')) s = 'rgba(16,185,129,.18):#34d399';
+    else if (lv === 'closebelow')                       s = 'rgba(245,158,11,.18):#fbbf24';
+    else if (lv.includes('upside'))                     s = 'rgba(56,189,248,.18):#38bdf8';
+    else if (lv.includes('commit'))                     s = 'rgba(99,102,241,.18):#818cf8';
+    else if (lv.includes('lost') || lv.includes('nc'))  s = 'rgba(248,113,113,.18):#f87171';
+    else if (lv.includes('new'))                        s = 'rgba(52,211,153,.18):#34d399';
+    else if (lv.includes('etla'))                       s = 'rgba(192,132,252,.18):#c084fc';
+    const [bg, color] = s.split(':');
+    return `<span style="background:${bg};color:${color};border:1px solid ${color}33" class="inline-block px-2 py-0.5 rounded-full text-[11px] font-semibold whitespace-nowrap">${txt}</span>`;
+  }
+
+  // Attrition_Status column
+  if (lk === 'attritionstatus') {
+    let s = 'rgba(100,116,139,.18):#94a3b8';
+    if (lv.includes('cancel'))       s = 'rgba(248,113,113,.18):#f87171';
+    else if (lv.includes('change'))  s = 'rgba(56,189,248,.18):#38bdf8';
+    else if (lv.includes('license')) s = 'rgba(192,132,252,.18):#c084fc';
+    const [bg, color] = s.split(':');
+    return `<span style="background:${bg};color:${color};border:1px solid ${color}33" class="inline-block px-2 py-0.5 rounded-full text-[11px] font-semibold whitespace-nowrap">${txt}</span>`;
+  }
+
+  // 市場別 column
+  if (lk === '市場別') {
+    const s = lv.includes('教') ? 'rgba(52,211,153,.15):#34d399' : 'rgba(99,102,241,.15):#818cf8';
+    const [bg, color] = s.split(':');
+    return `<span style="background:${bg};color:${color}" class="inline-block px-2 py-0.5 rounded-md text-[11px] font-semibold">${txt}</span>`;
+  }
+
+  return null;
+}
+
+function updatePager(total, page, limit) {
+  const pages = Math.ceil(total / limit) || 1;
+  const label = `共 ${total.toLocaleString()} 筆`;
+  const pageLabel = `第 ${page} / ${pages} 頁`;
+  // Update both toolbars
+  ['tbl-count','tbl-count-gen'].forEach(id => { const el=document.getElementById(id); if(el) el.textContent=label; });
+  ['tbl-page-label','tbl-page-label-gen'].forEach(id => { const el=document.getElementById(id); if(el) el.textContent=pageLabel; });
+}
+
+function tblNext() {
+  const pages = Math.ceil(tblState.total / tblState.limit) || 1;
+  if (tblState.page < pages) { tblState.page++; loadTable(); }
+}
+function tblPrev() {
+  if (tblState.page > 1) { tblState.page--; loadTable(); }
+}
+function debounceSearch() {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => {
+    tblState.q = document.getElementById('tbl-search').value;
+    tblState.page = 1;
+    loadTable();
+  }, 350);
+}
+function debounceSearchGen() {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => {
+    tblState.q = document.getElementById('tbl-search-gen').value;
+    tblState.page = 1;
+    loadTable();
+  }, 350);
+}
+
+// ── Filters (main table only) ─────────────────────────────────────────────────
+async function loadFilterOptions() {
+  const flds = [
+    { id:'filter-status', col:'Attrition_Status', label:'所有 Status' },
+    { id:'filter-market', col:'市場別',           label:'所有市場別' },
+    { id:'filter-owner',  col:'Owner',            label:'所有 Owner' },
+  ];
+  for (const f of flds) {
+    const el = document.getElementById(f.id);
+    if (!el) continue;
+    el.innerHTML = `<option value="">${f.label}</option>`;
+    try {
+      const vals = await fetchJSON(`/api/distinct/main_table/${encodeURIComponent(f.col)}`);
+      vals.forEach(v => {
+        const opt = document.createElement('option');
+        opt.value = v; opt.textContent = v;
+        el.appendChild(opt);
+      });
+    } catch {}
+  }
+}
+function resetFilters() {
+  ['filter-status','filter-market','filter-owner'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+}
+function applyFilters() {
+  tblState.filters = {
+    'Attrition_Status': document.getElementById('filter-status')?.value || '',
+    '市場別':           document.getElementById('filter-market')?.value || '',
+    'Owner':            document.getElementById('filter-owner')?.value  || '',
+  };
+  // Remove empty filters
+  Object.keys(tblState.filters).forEach(k => { if (!tblState.filters[k]) delete tblState.filters[k]; });
+  tblState.page = 1;
+  loadTable();
+}
+
+// ── Row CRUD config ────────────────────────────────────────────────────────────
+const MAIN_SECTIONS = [
+  { label:'展碁業務', icon:'briefcase',
+    keys:['部門別','展碁業務','展碁內勤'] },
+  { label:'業務資訊', icon:'calendar-check',
+    keys:['Cancellation_Quarter','Attrition_Week','Owner','市場別'] },
+  { label:'客戶資訊', icon:'user',
+    keys:['VIP','客戶ID','客戶公司中文名','經銷商','經銷Sales'] },
+  { label:'產品資訊', icon:'package',
+    keys:['周年日','產品料號','產品名稱','數量','Unit_Band','價格等級'] },
+  { label:'進度資訊', icon:'trending-up',
+    keys:['Close_Unit','進度','更新日期','連絡狀況','Attrition_Status','3YC_End_Date','3YC_Start_Date'] },
+];
+// Hardcoded fallback editable set — includes BOTH DB column names (underscore) and
+// field_permissions names (spaces/parens) to handle the two different naming conventions
+const _EDIT_FALLBACK = new Set([
+  // Actual DB column names (col_key from rowModalCols)
+  'Close_Unit', '進度', '更新日期', '連絡狀況', 'Attrition_Status',
+  'Call_Name', 'Lost_Reason',
+  '授權管理人_FY25', '電話_FY25', 'Email_FY25',
+  '主要管理人_FY26', '電話_FY26', 'Email_FY26',
+  // field_permissions naming (with spaces/parentheses)
+  'Close Unit', 'Call Name', 'Lost Reason',
+  '授權管理人 (FY25)', '電話 (FY25)', 'Email (FY25)',
+  '主要管理人 (FY26)', '授權管理人 (FY26)', '電話 (FY26)', 'Email (FY26)',
+]);
+
+function canEditField(key) {
+  if (!currentUser) return false;
+  if (currentUser.group === 'Supervisor') return true;
+  const sp = key.replace(/_/g,' '), us = key.replace(/ /g,'_');
+  // The 13 fallback fields are ALWAYS editable for non-Supervisor (immune to DB value)
+  if (_EDIT_FALLBACK.has(key) || _EDIT_FALLBACK.has(sp) || _EDIT_FALLBACK.has(us)) return true;
+  // For other fields: only allow if DB explicitly permits
+  return myPerms['_edit_'+key] === true || myPerms['_edit_'+sp] === true || myPerms['_edit_'+us] === true;
+}
+
+const MAIN_DROPDOWN_KEYS = new Set([
+  '部門別','展碁業務','展碁內勤','Owner','市場別',
+  'Cancellation_Quarter','Attrition_Week','進度','Attrition_Status','Unit_Band','價格等級'
+]);
+const DATE_LABEL_KW = ['日','date','Date','DATE','日期','Start','End','start','end','提醒','週年','周年'];
+
+// Excel date serial → 'YYYY/MM/DD'
+function excelSerialToDate(val, key) {
+  if (val === null || val === '' || val === undefined) return val;
+  const label = key || '';
+  if (!DATE_LABEL_KW.some(kw => label.includes(kw))) return val;
+  const n = Number(val);
+  if (!Number.isFinite(n) || n < 36526 || n > 54789) return val;
+  // Excel origin: 1899-12-30
+  const d = new Date(Date.UTC(1899, 11, 30) + Math.floor(n) * 86400000);
+  const y = d.getUTCFullYear();
+  const m = String(d.getUTCMonth()+1).padStart(2,'0');
+  const day = String(d.getUTCDate()).padStart(2,'0');
+  return `${y}/${m}/${day}`;
+}
+const _dropCache = {};
+
+async function _getOpts(key) {
+  if (_dropCache[key]) return _dropCache[key];
+  try {
+    const v = await fetchJSON(`/api/distinct/main_table/${encodeURIComponent(key)}`);
+    _dropCache[key] = v;
+    return v;
+  } catch { return []; }
+}
+
+// ── Row CRUD ──────────────────────────────────────────────────────────────────
+async function openNewRow() {
+  rowModalMode = 'new';
+  rowModalRid  = null;
+  document.getElementById('row-modal-title').innerHTML =
+    '<i data-lucide="plus-circle" class="w-5 h-5 text-indigo-500"></i> 新增資料';
+  document.getElementById('row-modal').classList.remove('hidden');
+  await buildModalForm({});
+}
+
+async function openEditRow(rid) {
+  rowModalMode = 'edit';
+  rowModalRid  = rid;
+  document.getElementById('row-modal-title').innerHTML =
+    '<i data-lucide="edit-3" class="w-5 h-5 text-indigo-500"></i> 編輯資料';
+  document.getElementById('row-modal').classList.remove('hidden');
+  const rowData = getCurrentRowData(rid);
+  await buildModalForm(rowData || {});
+}
+
+function getCurrentRowData(rid) {
+  for (const tr of document.querySelectorAll('#tbl-body tr')) {
+    if (tr.querySelector(`button[onclick="openEditRow(${rid})"]`)) {
+      const result = {};
+      tr.querySelectorAll('td[data-col]').forEach(td => {
+        const key = td.getAttribute('data-col');
+        if (key) result[key] = td.getAttribute('title') || '';
+      });
+      return result;
+    }
+  }
+  return {};
+}
+
+async function buildModalForm(data) {
+  const body = document.getElementById('row-modal-body');
+  body.innerHTML = `<div class="col-span-2 flex items-center justify-center gap-2 py-8 text-slate-400 text-sm">
+    <i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> 載入欄位中…</div>`;
+  if (window.lucide) lucide.createIcons();
+
+  // Key → label map
+  const kl = {};
+  rowModalCols.forEach(c => { kl[c.col_key] = c.col_label || c.col_key; });
+  const allKeys = rowModalCols.map(c => c.col_key);
+
+  // Prefetch dropdown options in parallel
+  await Promise.all([...MAIN_DROPDOWN_KEYS].map(k => _getOpts(k)));
+
+  // Build sections — unlisted keys go to "其他資訊"
+  const sectionKeys = new Set(MAIN_SECTIONS.flatMap(s => s.keys));
+  const otherKeys   = allKeys.filter(k => !sectionKeys.has(k));
+  const sections    = [...MAIN_SECTIONS];
+  if (otherKeys.length) sections.push({ label:'其他資訊', icon:'more-horizontal', keys: otherKeys });
+
+  const inputCls = `w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700
+    bg-white dark:bg-slate-800/80 text-sm text-slate-700 dark:text-slate-200
+    focus:outline-none focus:ring-2 focus:ring-indigo-500/40`;
+
+  function isDate(key) { const l = kl[key]||key; return DATE_LABEL_KW.some(kw => l.includes(kw)); }
+
+  const readonlyCls = `w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700
+    bg-slate-50 dark:bg-slate-900/50 text-sm text-slate-400 dark:text-slate-500
+    cursor-not-allowed select-none`;
+
+  function renderField(key) {
+    if (!allKeys.includes(key)) return '';
+    if (currentUser && myPerms[key] === false) return '';
+    const label  = esc(kl[key] || key);
+    const rawVal = data[key] ?? '';
+    const curVal = excelSerialToDate(rawVal, key) || '';
+    const canEdit = canEditField(key);
+
+    if (!canEdit) {
+      return `<div>
+        <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5">${label}</label>
+        <div title="此欄位無法修改" class="${readonlyCls} flex items-center gap-1.5">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3 shrink-0 opacity-50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          <span>${esc(curVal) || '—'}</span>
+        </div>
+      </div>`;
+    }
+
+    const isDrop  = MAIN_DROPDOWN_KEYS.has(key) && (_dropCache[key]||[]).length > 0;
+    const isDateF = !isDrop && isDate(key);
+    const isMultiline = key === '連絡狀況';
+
+    let inp;
+    if (isDrop) {
+      const opts = (_dropCache[key]||[]).map(v =>
+        `<option value="${esc(v)}"${v===curVal?' selected':''}>${esc(v)}</option>`).join('');
+      inp = `<select data-key="${esc(key)}" class="${inputCls}">
+        <option value=""></option>${opts}</select>`;
+    } else if (isMultiline) {
+      inp = `<textarea data-key="${esc(key)}" rows="4"
+        class="${inputCls} resize-y">${esc(curVal)}</textarea>`;
+    } else if (isDateF) {
+      inp = `<input type="text" data-key="${esc(key)}" value="${esc(curVal)}"
+        placeholder="YYYY/MM/DD" class="${inputCls}">`;
+    } else {
+      inp = `<input type="text" data-key="${esc(key)}" value="${esc(curVal)}"
+        class="${inputCls}">`;
+    }
+    return `<div${isMultiline ? ' class="sm:col-span-2"' : ''}>
+      <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5">${label}</label>
+      ${inp}
+    </div>`;
+  }
+
+  const SECTION_ICONS = {
+    'briefcase':'briefcase','calendar-check':'calendar-check','user':'user',
+    'package':'package','trending-up':'trending-up','more-horizontal':'more-horizontal'
+  };
+
+  body.innerHTML = sections.map(sec => {
+    const valid = sec.keys.filter(k => allKeys.includes(k));
+    if (!valid.length) return '';
+    return `<div>
+      <div class="flex items-center gap-2 mb-4 pb-2.5 border-b border-slate-100 dark:border-slate-800">
+        <i data-lucide="${sec.icon}" class="w-4 h-4 text-indigo-400 shrink-0"></i>
+        <span class="text-sm font-bold text-slate-700 dark:text-slate-200">${esc(sec.label)}</span>
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        ${valid.map(renderField).join('')}
+      </div>
+    </div>`;
+  }).join('');
+
+  setTimeout(() => { if (window.lucide) lucide.createIcons(); }, 50);
+}
+
+function isDateKey(key) { return DATE_LABEL_KW.some(kw => key.includes(kw)); }
+
+async function saveRow() {
+  const fields = document.querySelectorAll('#row-modal-body [data-key]');
+  const payload = {};
+  const dateRe = /^\d{4}[\/\-](0?[1-9]|1[0-2])[\/\-](0?[1-9]|[12]\d|3[01])$/;
+  const badDates = [];
+  fields.forEach(el => {
+    if (!el.dataset.key) return;
+    const key = el.dataset.key;
+    if (!canEditField(key)) return;
+    const val = el.value.trim();
+    if (val && isDateKey(key) && !dateRe.test(val)) {
+      badDates.push(el.dataset.key);
+      el.style.borderColor = '#ef4444';
+    } else {
+      el.style.borderColor = '';
+    }
+    payload[key] = val;
+  });
+  if (badDates.length) {
+    showToast(`日期格式錯誤，請輸入 YYYY/MM/DD：${badDates.join('、')}`, 'error');
+    return;
+  }
+
+  try {
+    const url  = rowModalMode === 'new' ? '/api/row/main_table' : `/api/row/main_table/${rowModalRid}`;
+    const meth = rowModalMode === 'new' ? 'POST' : 'PUT';
+    const res  = await fetch(url, { method:meth, headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) });
+    const d    = await res.json();
+    if (!res.ok || d.error) throw new Error(d.error || '操作失敗');
+    closeRowModal();
+    await loadTable();
+    showToast(rowModalMode === 'new' ? '新增成功！' : '已儲存', 'success');
+  } catch(e) {
+    showToast('錯誤：' + e.message, 'error');
+  }
+}
+
+async function deleteRow(rid) {
+  if (!confirm('確定要刪除這筆資料嗎？')) return;
+  try {
+    const res = await fetch(`/api/row/main_table/${rid}`, { method:'DELETE' });
+    const d   = await res.json();
+    if (!res.ok || d.error) throw new Error(d.error || '刪除失敗');
+    await loadTable();
+    showToast('已刪除', 'success');
+  } catch(e) {
+    showToast('刪除失敗：' + e.message, 'error');
+  }
+}
+
+function closeRowModal() {
+  document.getElementById('row-modal').classList.add('hidden');
+}
+
+// ── Import ────────────────────────────────────────────────────────────────────
+function openImport() {
+  pendingFile = null;
+  document.getElementById('import-modal').classList.remove('hidden');
+  document.getElementById('import-progress').classList.add('hidden');
+  document.getElementById('import-result').classList.add('hidden');
+  document.getElementById('import-error').classList.add('hidden');
+  document.getElementById('drop-filename').textContent = '';
+  setTimeout(() => { if (window.lucide) lucide.createIcons(); }, 50);
+}
+function closeImport() {
+  document.getElementById('import-modal').classList.add('hidden');
+}
+function handleFileSelect(e) {
+  const f = e.target.files[0];
+  if (f) { pendingFile = f; document.getElementById('drop-filename').textContent = f.name; }
+}
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('drop-zone').classList.remove('drag-over');
+  const f = e.dataTransfer.files[0];
+  if (f && f.name.endsWith('.xlsx')) {
+    pendingFile = f;
+    document.getElementById('drop-filename').textContent = f.name;
+  }
+}
+async function importDefault() {
+  pendingFile = null;
+  await doImport();
+}
+async function doImport() {
+  document.getElementById('import-progress').classList.remove('hidden');
+  document.getElementById('import-result').classList.add('hidden');
+  document.getElementById('import-error').classList.add('hidden');
+  document.getElementById('import-bar').style.width = '10%';
+  document.getElementById('import-msg').textContent = '上傳中…';
+  document.getElementById('do-import-btn').disabled = true;
+
+  try {
+    let res;
+    if (pendingFile) {
+      const fd = new FormData();
+      fd.append('file', pendingFile);
+      document.getElementById('import-bar').style.width = '40%';
+      document.getElementById('import-msg').textContent = '伺服器處理中…';
+      res = await fetch('/api/import', { method:'POST', body:fd });
+    } else {
+      document.getElementById('import-bar').style.width = '40%';
+      document.getElementById('import-msg').textContent = '讀取預設路徑…';
+      res = await fetch('/api/import', { method:'POST' });
+    }
+
+    document.getElementById('import-bar').style.width = '80%';
+    const data = await res.json();
+
+    if (!res.ok || data.error) throw new Error(data.error || '匯入失敗');
+
+    document.getElementById('import-bar').style.width = '100%';
+    document.getElementById('import-spinner').classList.add('hidden');
+    document.getElementById('import-msg').textContent = '完成！';
+
+    // Show result
+    const el = document.getElementById('import-result');
+    el.classList.remove('hidden');
+    const body = document.getElementById('import-result-body');
+    body.innerHTML = `<p>檔案：${esc(data.filename)}  |  時間：${esc(data.imported_at)}</p>` +
+      Object.entries(data.sheets || {}).map(([s,n]) => `<p>${esc(s)}：${n} 筆</p>`).join('');
+
+    // Refresh
+    await loadStats();
+    await loadImportLog();
+    showToast('匯入完成！', 'success');
+
+  } catch(e) {
+    document.getElementById('import-bar').style.width = '100%';
+    document.getElementById('import-bar').classList.replace('bg-indigo-500','bg-red-500');
+    document.getElementById('import-spinner').classList.add('hidden');
+    document.getElementById('import-msg').textContent = '匯入失敗';
+    document.getElementById('import-error').classList.remove('hidden');
+    document.getElementById('import-error').textContent = e.message;
+  } finally {
+    document.getElementById('do-import-btn').disabled = false;
+  }
+}
+
+// ── Import log ────────────────────────────────────────────────────────────────
+async function loadImportLog() {
+  try {
+    const rows = await fetchJSON('/api/import_log');
+    const el = document.getElementById('import-log');
+    if (!rows.length) { el.textContent = '尚無匯入記錄'; return; }
+    el.innerHTML = `<div class="overflow-x-auto">
+      <table class="w-full text-xs border-collapse">
+        <thead><tr class="border-b border-slate-100 dark:border-slate-800 text-slate-400">
+          <th class="py-1.5 pr-4 text-left font-semibold">檔案</th>
+          <th class="py-1.5 pr-4 text-left font-semibold">工作表</th>
+          <th class="py-1.5 pr-4 text-left font-semibold">匯入時間</th>
+          <th class="py-1.5 text-right font-semibold">筆數</th>
+        </tr></thead>
+        <tbody class="divide-y divide-slate-50 dark:divide-slate-800/40">
+          ${rows.map(r => `<tr class="hover:bg-slate-50 dark:hover:bg-slate-800/20">
+            <td class="py-1.5 pr-4 text-slate-600 dark:text-slate-300 max-w-[180px] truncate" title="${esc(r.filename)}">${esc(r.filename)}</td>
+            <td class="py-1.5 pr-4 text-slate-500 dark:text-slate-400">${esc(r.sheet)}</td>
+            <td class="py-1.5 pr-4 text-slate-500 dark:text-slate-400">${esc(r.imported_at)}</td>
+            <td class="py-1.5 text-right font-semibold text-slate-700 dark:text-slate-200">${r.row_count?.toLocaleString()}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`;
+  } catch {}
+}
+
+// ── Export CSV ────────────────────────────────────────────────────────────────
+async function exportCSV() {
+  if (currentTab === 'dash') { showToast('請先切換到資料表分頁再匯出', 'warn'); return; }
+  const { table } = tblState;
+  try {
+    const data = await fetchJSON(`/api/data/${table}?limit=5000&page=1`);
+    if (!data.rows.length) { showToast('無資料可匯出', 'warn'); return; }
+    const keys = Object.keys(data.rows[0]).filter(k => k !== 'id');
+    const colMeta = await fetchJSON(`/api/columns/${table}`);
+    const keyToLabel = {};
+    colMeta.forEach(c => { keyToLabel[c.col_key] = c.col_label || c.col_key; });
+    const header = keys.map(k => `"${(keyToLabel[k]||k).replace(/"/g,'""')}"`).join(',');
+    const rowsCsv = data.rows.map(r => keys.map(k => `"${(r[k]||'').toString().replace(/"/g,'""')}"`).join(',')).join('\n');
+    const blob = new Blob(['﻿' + header + '\n' + rowsCsv], { type:'text/csv;charset=utf-8;' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `${table}_${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+    showToast('CSV 匯出完成', 'success');
+  } catch(e) { showToast('匯出失敗：' + e.message, 'error'); }
+}
+
+// ── Refresh ───────────────────────────────────────────────────────────────────
+async function refreshData() {
+  const icon = document.getElementById('refresh-icon');
+  icon.classList.add('animate-spin');
+  if (currentTab === 'dash') await loadStats();
+  else await loadTable();
+  setTimeout(() => icon.classList.remove('animate-spin'), 600);
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+async function fetchJSON(url) {
+  const r = await fetch(API + url);
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  return r.json();
+}
+function setText(id, v) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = v == null ? '—' : (typeof v === 'number' ? v.toLocaleString() : v);
+}
+function fmt(v) { return v == null ? '—' : Number(v).toLocaleString(); }
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function truncate(s, n) { s = String(s||''); return s.length > n ? s.slice(0,n)+'…' : s; }
+function isDark() { return document.documentElement.classList.contains('dark'); }
+
+function showProgress() {
+  const b = document.getElementById('prog-bar');
+  b.style.width = '40%';
+  b.style.background = '#6366f1';
+}
+function hideProgress() {
+  const b = document.getElementById('prog-bar');
+  b.style.width = '100%';
+  setTimeout(() => { b.style.width = '0%'; }, 300);
+}
+
+function showToast(msg, type='info') {
+  const colors = { success:'bg-emerald-600', error:'bg-red-600', warn:'bg-amber-500', info:'bg-indigo-600' };
+  const icons  = { success:'check-circle', error:'x-circle', warn:'alert-triangle', info:'info' };
+  const id = 'toast-' + Date.now();
+  const el = document.createElement('div');
+  el.id = id;
+  el.className = `toast-in flex items-center gap-3 px-4 py-3 rounded-xl ${colors[type]||colors.info} text-white text-sm font-medium shadow-xl max-w-sm`;
+  el.innerHTML = `<i data-lucide="${icons[type]||'info'}" class="w-4 h-4 shrink-0"></i><span>${esc(msg)}</span>`;
+  document.getElementById('toast-container').appendChild(el);
+  if (window.lucide) lucide.createIcons();
+  setTimeout(() => el.remove(), 4000);
+}
+
+// Chart.js / Lucide lazy init
+let chartInited = false;
+function maybeInitCharts() {
+  if (chartInited || !window.Chart) return;
+  chartInited = true;
+  loadStats();
+}
+const observer = new MutationObserver(maybeInitCharts);
+observer.observe(document.body, { childList:true, subtree:true });
+// ── Auth & Permissions ────────────────────────────────────────────────────────
+let currentUser = null;   // {id,name,username,group,email}
+let myPerms = {};         // {fieldName: true/false}
+const GROUP_COLORS = {
+  'Supervisor':    'background:rgba(99,102,241,.18);color:#818cf8',
+  'Renew Team':    'background:rgba(16,185,129,.18);color:#34d399',
+  'Call out Team': 'background:rgba(245,158,11,.18);color:#fbbf24',
+  'BD Team':       'background:rgba(56,189,248,.18);color:#38bdf8',
+  'Adobe 原廠':    'background:rgba(248,113,113,.18);color:#f87171',
+};
+
+async function doLogin() {
+  const username = document.getElementById('login-username').value.trim();
+  const password = document.getElementById('login-password').value;
+  const errEl = document.getElementById('login-error');
+  errEl.classList.add('hidden');
+  if (!username || !password) { errEl.textContent='請輸入帳號與密碼'; errEl.classList.remove('hidden'); return; }
+  try {
+    const res = await fetch('/api/login', { method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({username, password}) });
+    const d = await res.json();
+    if (!res.ok) { errEl.textContent = d.error || '登入失敗'; errEl.classList.remove('hidden'); return; }
+    currentUser = d.user;
+    await afterLogin();
+  } catch(e) { errEl.textContent='連線失敗'; errEl.classList.remove('hidden'); }
+}
+
+async function afterLogin() {
+  try {
+    const pd = await fetchJSON('/api/my_permissions');
+    myPerms = (pd && typeof pd === 'object' && !pd.error) ? pd : {};
+  } catch(e) { myPerms = {}; }
+
+  // Update UI — hide login, show user chip
+  document.getElementById('login-modal').classList.add('hidden');
+  const chip = document.getElementById('user-chip');
+  chip.classList.remove('hidden'); chip.classList.add('flex');
+  document.getElementById('user-name-label').textContent = currentUser.name;
+  const badge = document.getElementById('user-group-badge');
+  badge.textContent = currentUser.group;
+  badge.style.cssText = (GROUP_COLORS[currentUser.group]||'background:rgba(100,116,139,.18);color:#94a3b8') + ';padding:2px 7px;border-radius:999px';
+
+  const isSup = currentUser.group === 'Supervisor';
+
+  // Tab visibility
+  const TAB_PERM_KEY = {
+    'dash':'_tab_dash','main':'_tab_main','rbob':'_tab_rbob',
+    'keyaccount':'_tab_keyaccount','tongji':'_tab_tongji',
+    'close':'_tab_close','reseller':'_tab_reseller','admin':'_tab_admin'
+  };
+  let firstAllowedTab = null;
+  document.querySelectorAll('.tab-btn[data-tab]').forEach(btn => {
+    const tab = btn.dataset.tab;
+    const key = TAB_PERM_KEY[tab];
+    const allowed = isSup || !key || myPerms[key] === true;
+    btn.style.display = allowed ? '' : 'none';
+    if (allowed && !firstAllowedTab) firstAllowedTab = tab;
+  });
+
+  // Import/Export/AddRow buttons
+  const canImport = isSup || myPerms['匯入 Excel'] === true;
+  const canExport = isSup || myPerms['匯入 CSV'] === true;
+  const canAddRow = isSup || myPerms['_func_add_row'] === true;
+  document.getElementById('btn-import').classList.toggle('hidden', !canImport);
+  document.getElementById('btn-export').classList.toggle('hidden', !canExport);
+  const btnAdd = document.getElementById('btn-add-row');
+  if (btnAdd) btnAdd.style.display = canAddRow ? '' : 'none';
+
+  if (window.lucide) lucide.createIcons();
+  if (firstAllowedTab) switchTab(firstAllowedTab);
+  else loadStats();
+  loadImportLog();
+}
+
+async function doLogout() {
+  await fetch('/api/logout', {method:'POST'});
+  currentUser = null; myPerms = {};
+  document.getElementById('login-modal').classList.remove('hidden');
+  document.getElementById('user-chip').classList.add('hidden');
+  document.getElementById('user-chip').classList.remove('flex');
+  switchTab('dash');
+}
+
+
+// ── Admin Tab ─────────────────────────────────────────────────────────────────
+let accountModalId = null;
+
+async function loadAdminTab() {
+  await Promise.all([loadAccounts(), loadPermTable()]);
+  if (window.lucide) lucide.createIcons();
+}
+
+async function loadAccounts() {
+  const rows = await fetchJSON('/api/accounts');
+  const tbody = document.getElementById('accounts-tbody');
+  if (!rows || rows.error) { tbody.innerHTML = '<tr><td colspan="7" class="px-4 py-6 text-center text-slate-400">載入失敗</td></tr>'; return; }
+  tbody.innerHTML = rows.map(r => {
+    const gc = GROUP_COLORS[r.group_name] || '';
+    const statusCls = r.status === '啟用'
+      ? 'background:rgba(16,185,129,.15);color:#34d399'
+      : 'background:rgba(248,113,113,.15);color:#f87171';
+    return `<tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition">
+      <td class="px-4 py-2.5 font-semibold text-slate-700 dark:text-slate-200">${esc(r.name)}</td>
+      <td class="px-4 py-2.5 text-slate-500 dark:text-slate-400 font-mono">${esc(r.username)}</td>
+      <td class="px-4 py-2.5 text-slate-500 dark:text-slate-400">${esc(r.email)}</td>
+      <td class="px-4 py-2.5"><span style="${gc};padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600">${esc(r.group_name)}</span></td>
+      <td class="px-4 py-2.5"><span style="${statusCls};padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600">${esc(r.status)}</span></td>
+      <td class="px-4 py-2.5 text-slate-400">${esc(r.notes||'')}</td>
+      <td class="px-4 py-2.5 text-center">
+        <button onclick="openAccountModal(${JSON.stringify(r).replace(/"/g,'&quot;')})" class="p-1.5 rounded-lg text-indigo-400 hover:bg-indigo-500/15 transition"><i data-lucide="pencil" class="w-3.5 h-3.5"></i></button>
+        <button onclick="deleteAccount(${r.id},'${esc(r.name)}')" class="p-1.5 rounded-lg text-red-400 hover:bg-red-500/15 transition"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
+      </td>
+    </tr>`;
+  }).join('');
+  if (window.lucide) lucide.createIcons();
+}
+
+function openAccountModal(row) {
+  accountModalId = row ? row.id : null;
+  document.getElementById('account-modal-title').textContent = row ? '編輯帳號' : '新增帳號';
+  document.getElementById('acc-pw-hint').textContent = row ? '（留空=不更改）' : '';
+  document.getElementById('acc-name').value     = row ? row.name : '';
+  document.getElementById('acc-email').value    = row ? row.email : '';
+  document.getElementById('acc-username').value = row ? row.username : '';
+  document.getElementById('acc-password').value = '';
+  document.getElementById('acc-group').value    = row ? row.group_name : 'Renew Team';
+  document.getElementById('acc-status').value   = row ? row.status : '啟用';
+  document.getElementById('acc-notes').value    = row ? (row.notes||'') : '';
+  document.getElementById('account-modal').classList.remove('hidden');
+}
+function closeAccountModal() { document.getElementById('account-modal').classList.add('hidden'); }
+
+async function saveAccount() {
+  const payload = {
+    name:       document.getElementById('acc-name').value.trim(),
+    email:      document.getElementById('acc-email').value.trim(),
+    username:   document.getElementById('acc-username').value.trim(),
+    password:   document.getElementById('acc-password').value,
+    group_name: document.getElementById('acc-group').value,
+    status:     document.getElementById('acc-status').value,
+    notes:      document.getElementById('acc-notes').value.trim(),
+  };
+  if (!payload.name || !payload.username) { showToast('姓名與帳號為必填','error'); return; }
+  const url = accountModalId ? `/api/accounts/${accountModalId}` : '/api/accounts';
+  const method = accountModalId ? 'PUT' : 'POST';
+  const res = await fetch(url, {method, headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)});
+  const d = await res.json();
+  if (!res.ok) { showToast(d.error||'儲存失敗','error'); return; }
+  showToast('儲存成功','success');
+  closeAccountModal();
+  loadAccounts();
+}
+
+async function deleteAccount(id, name) {
+  if (!confirm(`確定刪除帳號「${name}」？`)) return;
+  const res = await fetch(`/api/accounts/${id}`, {method:'DELETE'});
+  if (res.ok) { showToast('已刪除','success'); loadAccounts(); }
+  else showToast('刪除失敗','error');
+}
+
+// ── Permission Table ──────────────────────────────────────────────────────────
+const PERM_GROUPS = ['Call out Team','BD Team','Adobe 原廠','Renew Team','Supervisor'];
+let permEditLocked = true;
+
+function togglePermLock() {
+  permEditLocked = !permEditLocked;
+  loadPermTable();
+}
+
+const FIELD_DISPLAY_NAME = {
+  '_tab_dash':       '儀表板（分頁）',
+  '_tab_main':       '總表(New)（分頁）',
+  '_tab_rbob':       'RBOB（分頁）',
+  '_tab_keyaccount': 'Key Account（分頁）',
+  '_tab_tongji':     '統整報表（分頁）',
+  '_tab_close':      'Close Summary（分頁）',
+  '_tab_reseller':   'Reseller Owner（分頁）',
+  '_tab_admin':      '帳號與權限管理（分頁）',
+  '匯入 Excel':      '匯入 Excel（功能）',
+  '匯入 CSV':        '匯出 CSV（功能）',
+  '_func_add_row':   '總表(New) 新增資料（功能）',
+};
+
+async function loadPermTable() {
+  const isSup = currentUser && currentUser.group === 'Supervisor';
+
+  // Lock button styling
+  const lockBtn = document.getElementById('btn-perm-lock');
+  if (lockBtn) {
+    lockBtn.style.display = isSup ? 'flex' : 'none';
+    const lbl = document.getElementById('btn-perm-lock-label');
+    const icon = lockBtn.querySelector('i[data-lucide]');
+    if (permEditLocked) {
+      if (lbl) lbl.textContent = '解鎖編輯';
+      if (icon) icon.setAttribute('data-lucide', 'lock');
+      lockBtn.className = 'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800';
+    } else {
+      if (lbl) lbl.textContent = '鎖定';
+      if (icon) icon.setAttribute('data-lucide', 'lock-open');
+      lockBtn.className = 'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all bg-amber-50 border-amber-300 text-amber-700 dark:bg-amber-900/30 dark:border-amber-600 dark:text-amber-400';
+    }
+    if (window.lucide) lucide.createIcons();
+  }
+
+  const data = await fetchJSON('/api/perm_table');
+  const allFields = Object.keys(data);
+
+  // Separate _edit_ rows from view rows
+  const editData = {};
+  allFields.filter(f => f.startsWith('_edit_')).forEach(f => {
+    editData[f.slice(6)] = data[f];
+  });
+
+  const tabFields  = allFields.filter(f => f.startsWith('_tab_'));
+  const funcFields = allFields.filter(f => f.startsWith('_func_') || f === '匯入 Excel' || f === '匯入 CSV');
+  const colFields  = allFields.filter(f => !f.startsWith('_tab_') && !f.startsWith('_func_') &&
+                       !f.startsWith('_edit_') && f !== '匯入 Excel' && f !== '匯入 CSV');
+  const sorted = [...tabFields, ...funcFields, ...colFields];
+  const canToggle = isSup && !permEditLocked;
+  const totalCols = PERM_GROUPS.length * 2 + 1;
+
+  // Header
+  const thead = document.getElementById('perm-thead-row');
+  thead.innerHTML =
+    `<th class="px-4 py-3 text-left font-semibold text-slate-500 sticky left-0 bg-slate-50 dark:bg-slate-800/60 z-10">項目</th>` +
+    PERM_GROUPS.map(g =>
+      `<th class="px-3 py-3 text-center font-semibold text-slate-500 whitespace-nowrap" colspan="2">${esc(g)}</th>`
+    ).join('');
+
+  // Sub-header
+  const subhead = document.getElementById('perm-subhead-row');
+  subhead.classList.remove('hidden');
+  subhead.innerHTML =
+    `<th class="px-4 py-2 sticky left-0 bg-slate-50 dark:bg-slate-800/60 z-10"></th>` +
+    PERM_GROUPS.flatMap(() => [
+      `<th class="px-2 py-1.5 text-center text-[10px] text-slate-400 font-medium border-l border-slate-100 dark:border-slate-700/50">👁 顯示</th>`,
+      `<th class="px-2 py-1.5 text-center text-[10px] text-slate-400 font-medium">✏️ 編輯</th>`
+    ]).join('');
+
+  let html = '';
+  let lastSection = null;
+
+  sorted.forEach(field => {
+    const isTab  = field.startsWith('_tab_');
+    const isFunc = field.startsWith('_func_') || field === '匯入 Excel' || field === '匯入 CSV';
+    const section = isTab ? '分頁權限' : isFunc ? '功能權限' : '欄位權限';
+    if (section !== lastSection) {
+      lastSection = section;
+      html += `<tr><td colspan="${totalCols}" class="px-4 pt-5 pb-1 text-[11px] font-bold uppercase tracking-widest text-indigo-400">${section}</td></tr>`;
+    }
+
+    const row      = data[field] || {};
+    const editRow  = editData[field];
+    const nonSupGroups = PERM_GROUPS.filter(g => g !== 'Supervisor');
+    const isEditable = editRow !== undefined && nonSupGroups.some(g => editRow[g] === true);
+    const displayName = FIELD_DISPLAY_NAME[field] || field;
+
+    const rowBg = isEditable ? 'bg-yellow-50 dark:bg-yellow-900/20' : '';
+
+    const cells = PERM_GROUPS.map(g => {
+      const hasView = row[g] !== false;
+      // View cell — use data-* for event delegation
+      const viewToggle = canToggle
+        ? `data-perm-group="${g}" data-perm-field="${field}" data-perm-has="${hasView}" data-perm-type="view" style="cursor:pointer"` : '';
+      const viewTitle = hasView ? '有顯示權限' : '無顯示權限';
+      const viewCell = `<td class="px-2 py-2 text-center border-l border-slate-100 dark:border-slate-700/50${canToggle?' perm-toggle-cell':''}" ${viewToggle} title="${viewTitle}"><span>${hasView?'✅':'❌'}</span></td>`;
+
+      // Edit cell
+      let editCell;
+      if (editRow !== undefined) {
+        const hasEdit = editRow[g] !== false;
+        const editToggle = canToggle
+          ? `data-perm-group="${g}" data-perm-field="_edit_${field}" data-perm-has="${hasEdit}" data-perm-type="edit" style="cursor:pointer"` : '';
+        const editTitle = hasEdit ? '可編輯' : '不可編輯';
+        editCell = `<td class="px-2 py-2 text-center${canToggle?' perm-toggle-cell':''}" ${editToggle} title="${editTitle}"><span>${hasEdit?'✅':'❌'}</span></td>`;
+      } else {
+        editCell = `<td class="px-2 py-2 text-center text-slate-300 dark:text-slate-600 text-[10px]">—</td>`;
+      }
+      return viewCell + editCell;
+    }).join('');
+
+    // Field label: editable fields show in teal
+    const labelCls = (!isTab && !isFunc && isEditable)
+      ? 'text-amber-700 dark:text-amber-400 font-semibold'
+      : 'text-slate-700 dark:text-slate-300 font-medium';
+
+    html += `<tr class="border-t border-slate-100 dark:border-slate-700/50 hover:bg-slate-100/60 dark:hover:bg-slate-800/40 ${rowBg}">
+      <td class="px-4 py-2 ${labelCls} sticky left-0 whitespace-nowrap ${rowBg || 'bg-white dark:bg-darkCard'}">${esc(displayName)}</td>
+      ${cells}
+    </tr>`;
+  });
+
+  const tbody = document.getElementById('perm-tbody');
+  tbody.innerHTML = html;
+
+  // Event delegation — single listener, no inline onclick escaping issues
+  tbody.onclick = async (e) => {
+    const cell = e.target.closest('.perm-toggle-cell');
+    if (!cell) return;
+    if (permEditLocked) { showToast('請先點擊「解鎖編輯」再修改權限', 'error'); return; }
+    const group = cell.dataset.permGroup;
+    const field = cell.dataset.permField;
+    const currentHas = cell.dataset.permHas === 'true';
+    const newHas = !currentHas;
+    const res = await fetch(
+      `/api/perm_table/${encodeURIComponent(group)}/${encodeURIComponent(field)}`,
+      { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({has_access:newHas}) }
+    );
+    if (res.ok) { loadPermTable(); showToast('權限已更新','success'); }
+    else showToast('更新失敗','error');
+  };
+}
+
+async function togglePerm(group, field, currentHas) {
+  // Kept for backward compat; main path now uses event delegation in loadPermTable
+  if (permEditLocked) { showToast('請先點擊「解鎖編輯」再修改權限', 'error'); return; }
+  const newHas = !currentHas;
+  const res = await fetch(
+    `/api/perm_table/${encodeURIComponent(group)}/${encodeURIComponent(field)}`,
+    { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({has_access:newHas}) }
+  );
+  if (res.ok) { loadPermTable(); showToast('權限已更新','success'); }
+  else showToast('更新失敗','error');
+}
+
+// ── Boot ─────────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  const wait = setInterval(() => {
+    if (window.lucide) {
+      clearInterval(wait);
+      lucide.createIcons();
+      // Check if already logged in (server session)
+      fetch('/api/me').then(r => r.ok ? r.json() : null).then(u => {
+        if (u && !u.error) { currentUser = u; afterLogin(); }
+        // else login modal stays visible
+      }).catch(() => {});
+    }
+  }, 100);
+});
+</script>
+</body>
+</html>

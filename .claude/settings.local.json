@@ -1,0 +1,36 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c ' *)",
+      "Bash(pip install *)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(curl -s -X POST http://127.0.0.1:5001/api/import)",
+      "Bash(python renewal_server.py)",
+      "Bash(curl -s http://127.0.0.1:5001/api/stats)",
+      "Bash(curl -s -X POST http://127.0.0.1:5001/api/import --max-time 180)",
+      "Bash(python -c \"import os; print\\(os.path.getsize\\('D:/excel_dashboard10 Adobe/FY26_Q3_續約總表_範例.xlsx'\\), 'bytes'\\)\")",
+      "Bash(pkill -f \"python renewal_server.py\")",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\('server ok'\\)\")",
+      "Bash(curl -s -X POST http://127.0.0.1:5001/api/import --max-time 300)",
+      "Bash(time curl -s -X POST http://127.0.0.1:5001/api/import --max-time 120)",
+      "Bash(pkill -f \"renewal_server.py\")",
+      "Bash(curl -s -X POST http://127.0.0.1:5001/api/import --max-time 60)",
+      "Bash(pkill -9 -f \"renewal_server\")",
+      "Bash(pkill -9 -f \"python.*5001\")",
+      "Bash(netstat -ano)",
+      "Bash(tasklist)",
+      "PowerShell(Get-Process python -ErrorAction SilentlyContinue)",
+      "PowerShell(Stop-Process -Force)",
+      "PowerShell(\\(Get-Command python\\).Source)",
+      "PowerShell(python \"D:\\\\Users\\\\9203901\\\\AppData\\\\Local\\\\Temp\\\\check_perms.py\")",
+      "PowerShell(Invoke-WebRequest -Uri \"http://127.0.0.1:5001/api/login\" -Method POST -ContentType \"application/json\" -Body '{\"username\":\"sam\",\"password\":\"p@ssw0rd\"}' -SessionVariable sess)",
+      "PowerShell($global:webSession = $sess)",
+      "PowerShell(python \"D:\\\\Users\\\\9203901\\\\AppData\\\\Local\\\\Temp\\\\check_perms2.py\")",
+      "PowerShell(C:\\\\Python314\\\\python.exe \"D:\\\\Users\\\\9203901\\\\AppData\\\\Local\\\\Temp\\\\check_cols.py\")",
+      "PowerShell(C:\\\\Python314\\\\python.exe \"D:\\\\Users\\\\9203901\\\\AppData\\\\Local\\\\Temp\\\\check_cols2.py\" 2>&1)",
+      "PowerShell(C:\\\\Python314\\\\python.exe \"D:\\\\Users\\\\9203901\\\\AppData\\\\Local\\\\Temp\\\\check_edit.py\")",
+      "Bash(gh --version)",
+      "PowerShell(gh --version 2>&1)"
+    ]
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "renewal-server",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["renewal_server.py"],
+      "port": 5001,
+      "autoPort": false
+    }
+  ]
+}
