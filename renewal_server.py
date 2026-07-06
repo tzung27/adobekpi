@@ -836,4 +836,5 @@ if __name__ == '__main__':
     print('║  FY26 Q3 續約總表管理系統  啟動中...     ║')
     print('║  http://127.0.0.1:5001                   ║')
     print('╚══════════════════════════════════════════╝')
-    app.run(debug=True, port=5001, use_reloader=False)
+    port = int(os.environ.get('PORT', 5001))
+    app.run(debug=False, host='0.0.0.0', port=port, use_reloader=False)
