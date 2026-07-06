@@ -1557,30 +1557,38 @@ async function doLogout() {
   switchTab('dash');
 }
 
-// ── Polling real-time row sync ─────────────────────────────────────────────────
-let _pollTimer = null;
-let _pollLastTs = '';
+// ── SSE real-time row sync ─────────────────────────────────────────────────────
+let _sseSource = null;
+let _sseLastTs = '';
+let _sseReconnTimer = null;
 
 function startSSE() {
   stopSSE();
-  _pollLastTs = new Date().toISOString().slice(0, 23).replace('T', ' ');
-  _pollTimer = setInterval(_pollChanges, 5000);
+  _sseLastTs = new Date().toISOString().slice(0, 23).replace('T', ' ');
+  _connectSSE();
 }
 
 function stopSSE() {
-  if (_pollTimer) { clearInterval(_pollTimer); _pollTimer = null; }
+  if (_sseReconnTimer) { clearTimeout(_sseReconnTimer); _sseReconnTimer = null; }
+  if (_sseSource) { _sseSource.close(); _sseSource = null; }
 }
 
-async function _pollChanges() {
-  if (!currentUser || currentTab === 'dash' || currentTab === 'admin') return;
-  const table = tblState.table;
-  if (table !== 'main_table') return;
-  try {
-    const d = await fetchJSON(`/api/changes/${table}?since=${encodeURIComponent(_pollLastTs)}`);
-    if (!d.rows || !d.rows.length) return;
-    _pollLastTs = d.rows[0]._updated_at || _pollLastTs;
-    d.rows.forEach(row => _applyRowUpdate(table, row._rid, row));
-  } catch {}
+function _connectSSE() {
+  if (_sseSource) { _sseSource.close(); _sseSource = null; }
+  _sseSource = new EventSource(`/api/events?since=${encodeURIComponent(_sseLastTs)}`);
+  _sseSource.onmessage = (e) => {
+    try {
+      const msg = JSON.parse(e.data);
+      if (msg.type === 'row_update') {
+        if (msg.data && msg.data._updated_at) _sseLastTs = msg.data._updated_at;
+        _applyRowUpdate(msg.table, msg.row_id, msg.data);
+      }
+    } catch {}
+  };
+  _sseSource.onerror = () => {
+    if (_sseSource) { _sseSource.close(); _sseSource = null; }
+    if (currentUser) _sseReconnTimer = setTimeout(_connectSSE, 3000);
+  };
 }
 
 function _applyRowUpdate(table, rid, data) {

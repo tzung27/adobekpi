@@ -837,45 +837,55 @@ def api_perm_table():
         result.setdefault(r['field_name'], {})[r['group_name']] = bool(r['has_access'])
     return jsonify(result)
 
-@app.route('/api/changes/<table>')
-def api_changes(table):
-    ALLOWED = {'main_table'}
-    if table not in ALLOWED:
-        return jsonify(error='invalid table'), 400
+@app.route('/api/events')
+def api_events():
+    import time as _time
+    from collections import OrderedDict
     u = session.get('user')
     if not u:
         return jsonify(error='not_logged_in'), 401
-    since = request.args.get('since', '')
-    conn = get_db()
-    try:
-        # Ensure _updated_at column exists
-        cols = [r[1] for r in conn.execute(f'PRAGMA table_info("{table}")').fetchall()]
-        if '_updated_at' not in cols:
-            conn.execute(f'ALTER TABLE "{table}" ADD COLUMN _updated_at TEXT')
-            conn.commit()
-        if since:
-            rows = conn.execute(
-                f'SELECT rowid as _rid, * FROM "{table}" WHERE _updated_at > ? ORDER BY _updated_at DESC LIMIT 50',
-                (since,)
-            ).fetchall()
-        else:
-            rows = []
-        ordered_keys = [r['col_key'] for r in conn.execute(
-            'SELECT col_key FROM col_meta WHERE table_name=? ORDER BY col_index', (table,)
-        ).fetchall()]
-        def fmt(r):
-            from collections import OrderedDict
-            d = OrderedDict()
-            d['_rid'] = r['_rid']
-            for k in ordered_keys:
-                d[k] = r[k] if k in r.keys() else None
-            d['_updated_at'] = r['_updated_at']
-            return d
-        return jsonify(rows=[fmt(r) for r in rows])
-    except Exception as e:
-        return jsonify(error=str(e)), 500
-    finally:
-        conn.close()
+    since = request.args.get('since', datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S.%f'))
+
+    def generate():
+        last_check = since
+        yield 'data: {"type":"connected"}\n\n'
+        deadline = _time.time() + 50  # reconnect every 50s to free the worker
+
+        while _time.time() < deadline:
+            _time.sleep(3)
+            conn = get_db()
+            try:
+                tbl_cols = [r[1] for r in conn.execute('PRAGMA table_info("main_table")').fetchall()]
+                if '_updated_at' not in tbl_cols:
+                    conn.close()
+                    continue
+                rows = conn.execute(
+                    'SELECT rowid as _rid, * FROM main_table WHERE _updated_at > ?'
+                    ' ORDER BY _updated_at LIMIT 50',
+                    (last_check,)
+                ).fetchall()
+                if rows:
+                    ordered_keys = [r['col_key'] for r in conn.execute(
+                        'SELECT col_key FROM col_meta WHERE table_name=? ORDER BY col_index',
+                        ('main_table',)
+                    ).fetchall()]
+                    for row in rows:
+                        d = OrderedDict()
+                        d['_rid'] = row['_rid']
+                        for k in ordered_keys:
+                            d[k] = row[k] if k in row.keys() else None
+                        d['_updated_at'] = row['_updated_at']
+                        msg = json.dumps({'type': 'row_update', 'table': 'main_table',
+                                          'row_id': row['_rid'], 'data': d}, ensure_ascii=False)
+                        yield f'data: {msg}\n\n'
+                    last_check = rows[-1]['_updated_at']
+            except Exception:
+                pass
+            finally:
+                conn.close()
+
+    return Response(generate(), mimetype='text/event-stream',
+                    headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'})
 
 
 @app.route('/api/perm_table/<group>/<path:field>', methods=['PUT'])
