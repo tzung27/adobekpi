@@ -686,13 +686,11 @@ def api_row(table, row_id):
         valid = {sanitize(k): v for k, v in data.items() if sanitize(k) in col_set}
         if not valid:
             return jsonify(error='no valid columns'), 400
+        now_ts = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
+        valid['_updated_at'] = now_ts
         set_str = ', '.join(f'"{k}"=?' for k in valid)
         conn.execute(f'UPDATE "{table}" SET {set_str} WHERE rowid=?', list(valid.values()) + [row_id])
         conn.commit()
-        # Broadcast updated row to all SSE clients
-        updated = conn.execute(f'SELECT rowid as _rid, * FROM "{table}" WHERE rowid=?', (row_id,)).fetchone()
-        if updated:
-            _sse_broadcast({'type': 'row_update', 'table': table, 'row_id': row_id, 'data': dict(updated)})
         return jsonify(ok=True)
     except Exception as e:
         return jsonify(error=str(e)), 500
@@ -835,31 +833,45 @@ def api_perm_table():
         result.setdefault(r['field_name'], {})[r['group_name']] = bool(r['has_access'])
     return jsonify(result)
 
-@app.route('/api/events')
-def api_events():
+@app.route('/api/changes/<table>')
+def api_changes(table):
+    ALLOWED = {'main_table'}
+    if table not in ALLOWED:
+        return jsonify(error='invalid table'), 400
     u = session.get('user')
     if not u:
         return jsonify(error='not_logged_in'), 401
-
-    def generate():
-        q = queue.Queue(maxsize=50)
-        with _sse_lock:
-            _sse_clients.append(q)
-        try:
-            yield 'data: {"type":"connected"}\n\n'
-            while True:
-                try:
-                    payload = q.get(timeout=25)
-                    yield f'data: {payload}\n\n'
-                except queue.Empty:
-                    yield ': keepalive\n\n'
-        finally:
-            with _sse_lock:
-                if q in _sse_clients:
-                    _sse_clients.remove(q)
-
-    return Response(generate(), mimetype='text/event-stream',
-                    headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'})
+    since = request.args.get('since', '')
+    conn = get_db()
+    try:
+        # Ensure _updated_at column exists
+        cols = [r[1] for r in conn.execute(f'PRAGMA table_info("{table}")').fetchall()]
+        if '_updated_at' not in cols:
+            conn.execute(f'ALTER TABLE "{table}" ADD COLUMN _updated_at TEXT')
+            conn.commit()
+        if since:
+            rows = conn.execute(
+                f'SELECT rowid as _rid, * FROM "{table}" WHERE _updated_at > ? ORDER BY _updated_at DESC LIMIT 50',
+                (since,)
+            ).fetchall()
+        else:
+            rows = []
+        ordered_keys = [r['col_key'] for r in conn.execute(
+            'SELECT col_key FROM col_meta WHERE table_name=? ORDER BY col_index', (table,)
+        ).fetchall()]
+        def fmt(r):
+            from collections import OrderedDict
+            d = OrderedDict()
+            d['_rid'] = r['_rid']
+            for k in ordered_keys:
+                d[k] = r[k] if k in r.keys() else None
+            d['_updated_at'] = r['_updated_at']
+            return d
+        return jsonify(rows=[fmt(r) for r in rows])
+    except Exception as e:
+        return jsonify(error=str(e)), 500
+    finally:
+        conn.close()
 
 
 @app.route('/api/perm_table/<group>/<path:field>', methods=['PUT'])

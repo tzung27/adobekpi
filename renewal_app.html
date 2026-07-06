@@ -1557,25 +1557,33 @@ async function doLogout() {
   switchTab('dash');
 }
 
-// ── SSE real-time row sync ─────────────────────────────────────────────────────
-let _sseSource = null;
+// ── Polling real-time row sync ─────────────────────────────────────────────────
+let _pollTimer = null;
+let _pollLastTs = '';
 
 function startSSE() {
   stopSSE();
-  _sseSource = new EventSource('/api/events');
-  _sseSource.onmessage = (e) => {
-    try {
-      const msg = JSON.parse(e.data);
-      if (msg.type === 'row_update') _sseUpdateRow(msg.table, msg.row_id, msg.data);
-    } catch {}
-  };
+  _pollLastTs = new Date().toISOString().slice(0, 23).replace('T', ' ');
+  _pollTimer = setInterval(_pollChanges, 5000);
 }
 
 function stopSSE() {
-  if (_sseSource) { _sseSource.close(); _sseSource = null; }
+  if (_pollTimer) { clearInterval(_pollTimer); _pollTimer = null; }
 }
 
-function _sseUpdateRow(table, rid, data) {
+async function _pollChanges() {
+  if (!currentUser || currentTab === 'dash' || currentTab === 'admin') return;
+  const table = tblState.table;
+  if (table !== 'main_table') return;
+  try {
+    const d = await fetchJSON(`/api/changes/${table}?since=${encodeURIComponent(_pollLastTs)}`);
+    if (!d.rows || !d.rows.length) return;
+    _pollLastTs = d.rows[0]._updated_at || _pollLastTs;
+    d.rows.forEach(row => _applyRowUpdate(table, row._rid, row));
+  } catch {}
+}
+
+function _applyRowUpdate(table, rid, data) {
   if (tblState.table !== table) return;
   for (const tr of document.querySelectorAll('#tbl-body tr')) {
     if (!tr.querySelector(`button[onclick="openEditRow(${rid})"]`)) continue;
@@ -1586,7 +1594,6 @@ function _sseUpdateRow(table, rid, data) {
       td.setAttribute('title', esc(String(v)));
       td.innerHTML = statusBadge(key, v) || esc(truncate(v, 45));
     });
-    // Flash highlight
     const origBg = tr.getAttribute('data-bg') || '';
     tr.style.transition = 'background 0.6s';
     tr.querySelectorAll('[data-rb]').forEach(e => { e.style.transition = 'background 0.6s'; e.style.background = '#1e3a5f'; });
