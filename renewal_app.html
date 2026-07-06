@@ -1604,7 +1604,9 @@ function _markPencilRed(rid) {
   const tr = document.querySelector(`#tbl-body tr[data-rid="${rid}"]`);
   if (!tr) return;
   const btn = tr.querySelector('button[title="編輯"]');
-  if (btn) btn.style.cssText += ';color:#f87171!important';
+  if (!btn) return;
+  btn.style.cssText += ';color:#f87171!important';
+  setTimeout(() => { btn.style.color = ''; }, 3000);
 }
 
 function _applyRowUpdate(table, rid, data) {
