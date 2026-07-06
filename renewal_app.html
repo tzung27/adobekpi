@@ -179,9 +179,15 @@
               <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">帳號</label>
               <div id="profile-username" class="px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-sm text-slate-600 dark:text-slate-300"></div>
             </div>
-            <div>
-              <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">群組</label>
-              <div id="profile-group" class="px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-sm text-slate-600 dark:text-slate-300"></div>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">群組</label>
+                <div id="profile-group" class="px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-sm text-slate-600 dark:text-slate-300"></div>
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">狀態</label>
+                <div id="profile-status" class="px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-sm text-slate-600 dark:text-slate-300"></div>
+              </div>
             </div>
             <div>
               <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">E-mail</label>
@@ -1622,6 +1628,7 @@ async function openProfileModal() {
     document.getElementById('profile-name').textContent = d.name || '';
     document.getElementById('profile-username').textContent = d.username || '';
     document.getElementById('profile-group').textContent = d.group_name || '';
+    document.getElementById('profile-status').textContent = d.status || '';
     document.getElementById('profile-email').value = d.email || '';
     document.getElementById('profile-password').value = '';
     document.getElementById('profile-last-login').textContent = d.last_login || '—';

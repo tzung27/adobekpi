@@ -767,7 +767,7 @@ def api_profile():
     if 'last_logout' not in existing_cols:
         conn.execute('ALTER TABLE accounts ADD COLUMN last_logout TEXT')
         conn.commit()
-    row = conn.execute('SELECT id,name,email,username,group_name,last_login,last_logout FROM accounts WHERE id=?', (u['id'],)).fetchone()
+    row = conn.execute('SELECT id,name,email,username,group_name,status,last_login,last_logout FROM accounts WHERE id=?', (u['id'],)).fetchone()
     conn.close()
     return jsonify(dict(row))
 
