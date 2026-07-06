@@ -1257,12 +1257,12 @@ async function saveRow() {
     const d    = await res.json();
     if (!res.ok || d.error) throw new Error(d.error || '操作失敗');
     closeRowModal();
+    console.log('[save] mode=', rowModalMode, 'rid=', rowModalRid);
     if (rowModalMode === 'new') {
       await loadTable();
     } else {
       _applyRowUpdate('main_table', rowModalRid, payload);
       _markPencilRed(rowModalRid);
-      // Advance since so version poll won't re-flag this save
       _versionSince = new Date().toISOString().slice(0, 23).replace('T', ' ');
     }
     showToast(rowModalMode === 'new' ? '新增成功！' : '已儲存', 'success');
@@ -1603,9 +1603,11 @@ async function _checkVersion() {
 
 function _markPencilRed(rid) {
   const tr = document.querySelector(`#tbl-body tr[data-rid="${rid}"]`);
+  console.log('[markPencilRed] rid=', rid, 'tr=', tr);
   if (!tr) return;
   const btn = tr.querySelector('button[title="編輯"]');
-  if (btn) btn.style.color = '#f87171';
+  console.log('[markPencilRed] btn=', btn);
+  if (btn) btn.style.cssText += ';color:#f87171!important';
 }
 
 function _applyRowUpdate(table, rid, data) {
