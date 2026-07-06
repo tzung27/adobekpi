@@ -856,6 +856,42 @@ def api_table_version(table):
         conn.close()
 
 
+@app.route('/api/changes/<table>')
+def api_changes(table):
+    ALLOWED = {'main_table'}
+    if table not in ALLOWED:
+        return jsonify(error='invalid table'), 400
+    u = session.get('user')
+    if not u:
+        return jsonify(error='not_logged_in'), 401
+    since = request.args.get('since', '')
+    conn = get_db()
+    try:
+        tbl_cols = [r[1] for r in conn.execute(f'PRAGMA table_info("{table}")').fetchall()]
+        if '_updated_at' not in tbl_cols or not since:
+            return jsonify(rows=[])
+        rows = conn.execute(
+            f'SELECT rowid as _rid, * FROM "{table}" WHERE _updated_at > ?'
+            ' ORDER BY _updated_at DESC LIMIT 50', (since,)
+        ).fetchall()
+        ordered_keys = [r['col_key'] for r in conn.execute(
+            'SELECT col_key FROM col_meta WHERE table_name=? ORDER BY col_index', (table,)
+        ).fetchall()]
+        from collections import OrderedDict
+        def fmt(r):
+            d = OrderedDict()
+            d['_rid'] = r['_rid']
+            for k in ordered_keys:
+                d[k] = r[k] if k in r.keys() else None
+            d['_updated_at'] = r['_updated_at']
+            return d
+        return jsonify(rows=[fmt(r) for r in rows])
+    except Exception as e:
+        return jsonify(error=str(e)), 500
+    finally:
+        conn.close()
+
+
 @app.route('/api/perm_table/<group>/<path:field>', methods=['PUT'])
 def api_perm_update(group, field):
     err = _require_supervisor()

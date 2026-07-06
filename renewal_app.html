@@ -1257,7 +1257,14 @@ async function saveRow() {
     const d    = await res.json();
     if (!res.ok || d.error) throw new Error(d.error || '操作失敗');
     closeRowModal();
-    await loadTable();
+    if (rowModalMode === 'new') {
+      await loadTable();
+    } else {
+      _applyRowUpdate('main_table', rowModalRid, payload);
+      _markPencilRed(rowModalRid);
+      // Advance since so version poll won't re-flag this save
+      _versionSince = new Date().toISOString().slice(0, 23).replace('T', ' ');
+    }
     showToast(rowModalMode === 'new' ? '新增成功！' : '已儲存', 'success');
   } catch(e) {
     showToast('錯誤：' + e.message, 'error');
@@ -1557,13 +1564,15 @@ async function doLogout() {
   switchTab('dash');
 }
 
-// ── Auto-refresh: poll version every 10s, reload table if changed ──────────────
+// ── Version polling + red-pencil indicator ─────────────────────────────────────
 let _autoRefreshTimer = null;
 let _knownVersion = '';
+let _versionSince = '';
 
 function startSSE() {
   stopSSE();
   _knownVersion = '';
+  _versionSince = new Date().toISOString().slice(0, 23).replace('T', ' ');
   _autoRefreshTimer = setInterval(_checkVersion, 10000);
 }
 
@@ -1578,14 +1587,43 @@ async function _checkVersion() {
     const d = await fetchJSON('/api/table_version/main_table');
     if (!d.version) return;
     if (_knownVersion && d.version !== _knownVersion) {
-      const scroller = document.querySelector('#view-table .overflow-auto') || document.querySelector('#tbl-body')?.closest('.overflow-auto');
-      const scrollTop = scroller ? scroller.scrollTop : 0;
-      const scrollLeft = scroller ? scroller.scrollLeft : 0;
-      await loadTable();
-      if (scroller) { scroller.scrollTop = scrollTop; scroller.scrollLeft = scrollLeft; }
+      // Fetch changed rows and mark pencils red
+      const c = await fetchJSON(`/api/changes/main_table?since=${encodeURIComponent(_versionSince)}`);
+      if (c.rows && c.rows.length) {
+        c.rows.forEach(row => {
+          _applyRowUpdate('main_table', row._rid, row);
+          _markPencilRed(row._rid);
+        });
+        _versionSince = c.rows[0]._updated_at || _versionSince;
+      }
     }
     _knownVersion = d.version;
   } catch {}
+}
+
+function _markPencilRed(rid) {
+  for (const tr of document.querySelectorAll('#tbl-body tr')) {
+    const btn = tr.querySelector(`button[onclick="openEditRow(${rid})"]`);
+    if (!btn) continue;
+    btn.classList.remove('text-indigo-400','hover:text-indigo-200','hover:bg-indigo-500/15');
+    btn.classList.add('text-red-400','hover:text-red-300','hover:bg-red-500/15');
+    break;
+  }
+}
+
+function _applyRowUpdate(table, rid, data) {
+  if (tblState.table !== table) return;
+  for (const tr of document.querySelectorAll('#tbl-body tr')) {
+    if (!tr.querySelector(`button[onclick="openEditRow(${rid})"]`)) continue;
+    tr.querySelectorAll('td[data-col]').forEach(td => {
+      const key = td.getAttribute('data-col');
+      if (!key || !(key in data)) return;
+      const v = excelSerialToDate(String(data[key] ?? ''), key);
+      td.setAttribute('title', esc(String(v)));
+      td.innerHTML = statusBadge(key, v) || esc(truncate(v, 45));
+    });
+    break;
+  }
 }
 
 
