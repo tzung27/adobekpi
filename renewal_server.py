@@ -83,7 +83,8 @@ def init_db():
         CREATE TABLE IF NOT EXISTS accounts (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT, email TEXT, username TEXT UNIQUE,
-            password TEXT, group_name TEXT, status TEXT DEFAULT '啟用', notes TEXT
+            password TEXT, group_name TEXT, status TEXT DEFAULT '啟用', notes TEXT,
+            last_login TEXT, last_logout TEXT
         );
         CREATE TABLE IF NOT EXISTS field_permissions (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -725,14 +726,66 @@ def api_login():
     conn.close()
     if not row or row['password'] != hash_pw(password):
         return jsonify(error='帳號或密碼錯誤'), 401
+    now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    conn2 = get_db()
+    # Migrate: add columns if missing
+    existing_cols = [r[1] for r in conn2.execute('PRAGMA table_info(accounts)').fetchall()]
+    if 'last_login' not in existing_cols:
+        conn2.execute('ALTER TABLE accounts ADD COLUMN last_login TEXT')
+    if 'last_logout' not in existing_cols:
+        conn2.execute('ALTER TABLE accounts ADD COLUMN last_logout TEXT')
+    conn2.execute('UPDATE accounts SET last_login=? WHERE id=?', (now, row['id']))
+    conn2.commit()
+    conn2.close()
     session['user'] = {'id': row['id'], 'name': row['name'], 'username': row['username'],
-                       'group': row['group_name'], 'email': row['email']}
+                       'group': row['group_name'], 'email': row['email'], 'last_login': now}
     return jsonify(ok=True, user=dict(session['user']))
 
 @app.route('/api/logout', methods=['POST'])
 def api_logout():
+    u = session.get('user')
+    if u:
+        now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        conn = get_db()
+        conn.execute('UPDATE accounts SET last_logout=? WHERE id=?', (now, u['id']))
+        conn.commit()
+        conn.close()
     session.clear()
     return jsonify(ok=True)
+
+
+@app.route('/api/profile', methods=['GET'])
+def api_profile():
+    u = session.get('user')
+    if not u:
+        return jsonify(error='not_logged_in'), 401
+    conn = get_db()
+    row = conn.execute('SELECT id,name,email,username,group_name,last_login,last_logout FROM accounts WHERE id=?', (u['id'],)).fetchone()
+    conn.close()
+    return jsonify(dict(row))
+
+
+@app.route('/api/profile', methods=['PUT'])
+def api_profile_update():
+    u = session.get('user')
+    if not u:
+        return jsonify(error='not_logged_in'), 401
+    d = request.get_json() or {}
+    conn = get_db()
+    try:
+        if d.get('password'):
+            conn.execute('UPDATE accounts SET email=?, password=? WHERE id=?',
+                         (d.get('email', ''), hash_pw(d['password']), u['id']))
+        else:
+            conn.execute('UPDATE accounts SET email=? WHERE id=?',
+                         (d.get('email', ''), u['id']))
+        conn.commit()
+        session['user'] = {**u, 'email': d.get('email', u['email'])}
+        return jsonify(ok=True)
+    except Exception as e:
+        return jsonify(error=str(e)), 400
+    finally:
+        conn.close()
 
 @app.route('/api/me')
 def api_me():

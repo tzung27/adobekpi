@@ -149,12 +149,65 @@
 
       <!-- User info + logout -->
       <div id="user-chip" class="hidden items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-600 dark:text-slate-300">
-        <i data-lucide="user-circle" class="w-4 h-4"></i>
-        <span id="user-name-label"></span>
-        <span id="user-group-badge" class="px-1.5 py-0.5 rounded-full text-[10px]"></span>
+        <button onclick="openProfileModal()" class="flex items-center gap-2 hover:opacity-80 transition">
+          <i data-lucide="user-circle" class="w-4 h-4"></i>
+          <span id="user-name-label"></span>
+          <span id="user-group-badge" class="px-1.5 py-0.5 rounded-full text-[10px]"></span>
+        </button>
         <button onclick="doLogout()" title="登出" class="ml-1 text-slate-400 hover:text-red-400 transition">
           <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
         </button>
+      </div>
+
+      <!-- Profile modal -->
+      <div id="profile-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+        <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-sm mx-4 p-6">
+          <div class="flex items-center justify-between mb-5">
+            <h3 class="text-base font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+              <i data-lucide="user-circle" class="w-5 h-5 text-indigo-500"></i> 個人資料
+            </h3>
+            <button onclick="closeProfileModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+              <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+          </div>
+          <div class="space-y-4">
+            <div>
+              <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">姓名</label>
+              <div id="profile-name" class="px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-sm text-slate-600 dark:text-slate-300"></div>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">帳號</label>
+              <div id="profile-username" class="px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-sm text-slate-600 dark:text-slate-300"></div>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">群組</label>
+              <div id="profile-group" class="px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-sm text-slate-600 dark:text-slate-300"></div>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">E-mail</label>
+              <input id="profile-email" type="email" class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">新密碼（留空=不更改）</label>
+              <input id="profile-password" type="password" placeholder="輸入新密碼" class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">最後登入</label>
+                <div id="profile-last-login" class="px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-xs text-slate-500 dark:text-slate-400"></div>
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">最後登出</label>
+                <div id="profile-last-logout" class="px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-xs text-slate-500 dark:text-slate-400"></div>
+              </div>
+            </div>
+          </div>
+          <div id="profile-error" class="hidden mt-3 text-xs text-red-500"></div>
+          <div class="flex gap-3 mt-6">
+            <button onclick="closeProfileModal()" class="flex-1 px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-600 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">取消</button>
+            <button onclick="saveProfile()" class="flex-1 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition">儲存</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -1551,6 +1604,42 @@ async function afterLogin() {
   if (firstAllowedTab) switchTab(firstAllowedTab);
   else loadStats();
   loadImportLog();
+}
+
+async function openProfileModal() {
+  try {
+    const d = await fetchJSON('/api/profile');
+    document.getElementById('profile-name').textContent = d.name || '';
+    document.getElementById('profile-username').textContent = d.username || '';
+    document.getElementById('profile-group').textContent = d.group_name || '';
+    document.getElementById('profile-email').value = d.email || '';
+    document.getElementById('profile-password').value = '';
+    document.getElementById('profile-last-login').textContent = d.last_login || '—';
+    document.getElementById('profile-last-logout').textContent = d.last_logout || '—';
+    document.getElementById('profile-error').classList.add('hidden');
+    document.getElementById('profile-modal').classList.remove('hidden');
+    setTimeout(() => { if (window.lucide) lucide.createIcons(); }, 50);
+  } catch(e) { showToast('載入失敗', 'error'); }
+}
+
+function closeProfileModal() {
+  document.getElementById('profile-modal').classList.add('hidden');
+}
+
+async function saveProfile() {
+  const email = document.getElementById('profile-email').value.trim();
+  const password = document.getElementById('profile-password').value;
+  const errEl = document.getElementById('profile-error');
+  errEl.classList.add('hidden');
+  if (!email) { errEl.textContent = '請輸入 E-mail'; errEl.classList.remove('hidden'); return; }
+  try {
+    const res = await fetch('/api/profile', { method:'PUT', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({email, password}) });
+    const d = await res.json();
+    if (!res.ok || d.error) throw new Error(d.error || '儲存失敗');
+    closeProfileModal();
+    showToast('個人資料已更新', 'success');
+  } catch(e) { errEl.textContent = e.message; errEl.classList.remove('hidden'); }
 }
 
 async function doLogout() {
