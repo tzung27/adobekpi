@@ -1635,8 +1635,10 @@ async function openProfileModal() {
     document.getElementById('profile-last-logout').textContent = d.last_logout || '—';
     document.getElementById('profile-error').classList.add('hidden');
     document.getElementById('profile-modal').classList.remove('hidden');
-    document.getElementById('profile-modal-inner').scrollTop = 0;
-    setTimeout(() => { if (window.lucide) lucide.createIcons(); }, 50);
+    setTimeout(() => {
+      document.getElementById('profile-modal-inner').scrollTop = 0;
+      if (window.lucide) lucide.createIcons();
+    }, 30);
   } catch(e) { showToast('載入失敗', 'error'); }
 }
 
