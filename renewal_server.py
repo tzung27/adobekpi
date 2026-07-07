@@ -3,7 +3,11 @@ FY26 Q3 續約總表管理系統 - Flask 後端
 """
 from flask import Flask, request, jsonify, send_from_directory, session, Response
 import sqlite3, re, os, json, hashlib, queue, threading
-from datetime import datetime, date, timedelta
+from datetime import datetime, date, timedelta, timezone
+
+TZ_TAIPEI = timezone(timedelta(hours=8))
+def now_tw():
+    return datetime.now(TZ_TAIPEI).strftime('%Y-%m-%d %H:%M:%S')
 
 # Excel date serial → 'YYYY/MM/DD'
 _DATE_KEYWORDS = ('日', 'date', 'Date', 'DATE', '日期', 'start', 'end', 'Start', 'End', '提醒', '週年', '周年')
@@ -318,7 +322,7 @@ def api_import():
 
     try:
         conn = get_db()
-        now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        now = now_tw()
         results = {}
 
         zf = zipfile.ZipFile(tmp_path, 'r')
@@ -688,7 +692,7 @@ def api_row(table, row_id):
         if not valid:
             return jsonify(error='no valid columns'), 400
         set_str = ', '.join(f'"{k}"=?' for k in valid)
-        now_ts = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
+        now_ts = datetime.now(TZ_TAIPEI).strftime('%Y-%m-%d %H:%M:%S.%f')
         # Ensure _updated_at column exists
         tbl_cols = [r[1] for r in conn.execute(f'PRAGMA table_info("{table}")').fetchall()]
         if '_updated_at' not in tbl_cols:
@@ -726,7 +730,7 @@ def api_login():
     conn.close()
     if not row or row['password'] != hash_pw(password):
         return jsonify(error='帳號或密碼錯誤'), 401
-    now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    now = now_tw()
     conn2 = get_db()
     # Migrate: add columns if missing
     existing_cols = [r[1] for r in conn2.execute('PRAGMA table_info(accounts)').fetchall()]
@@ -745,7 +749,7 @@ def api_login():
 def api_logout():
     u = session.get('user')
     if u:
-        now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        now = now_tw()
         conn = get_db()
         conn.execute('UPDATE accounts SET last_logout=? WHERE id=?', (now, u['id']))
         conn.commit()
@@ -801,7 +805,7 @@ def api_me():
         return jsonify(error='not_logged_in'), 401
     # Backfill last_login if missing (e.g. session survived server restart)
     if not u.get('last_login'):
-        now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        now = now_tw()
         conn = get_db()
         existing_cols = [r[1] for r in conn.execute('PRAGMA table_info(accounts)').fetchall()]
         if 'last_login' not in existing_cols:
