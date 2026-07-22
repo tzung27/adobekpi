@@ -513,13 +513,20 @@ def api_data(table):
         where_clauses.append(f'"{sanitize(col)}" = ?')
         params.append(val)
 
-    # Multi-column filters via f_ prefix params
-    for k, v in request.args.items():
-        if k.startswith('f_') and v:
+    # Multi-column filters via f_ prefix params (supports repeated keys for multi-select)
+    from collections import defaultdict
+    f_groups = defaultdict(list)
+    for k, v in request.args.to_dict(flat=False).items():
+        if k.startswith('f_'):
             col_name = sanitize(k[2:])
             if col_name:
-                where_clauses.append(f'"{col_name}" = ?')
-                params.append(v)
+                for val in v:
+                    if val:
+                        f_groups[col_name].append(val)
+    for col_name, vals in f_groups.items():
+        placeholders = ','.join(['?'] * len(vals))
+        where_clauses.append(f'"{col_name}" IN ({placeholders})')
+        params.extend(vals)
 
     where_sql = f'WHERE {" AND ".join(where_clauses)}' if where_clauses else ''
 
