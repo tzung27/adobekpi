@@ -930,10 +930,10 @@ async function renderTable(rows, table) {
             class="p-1.5 rounded-lg text-indigo-400 hover:text-indigo-200 hover:bg-indigo-500/15 transition">
             <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
           </button>
-          <button onclick="deleteRow(${rid})" title="刪除"
+          ${currentUser && currentUser.group === 'Call out Team' ? '' : `<button onclick="deleteRow(${rid})" title="刪除"
             class="p-1.5 rounded-lg text-red-400 hover:text-red-300 hover:bg-red-500/15 transition">
             <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-          </button>
+          </button>`}
         </div>
       </td>` : '';
     const trStyle = `background:${ROW_BG};border-top:1px solid ${BORDER}`;
