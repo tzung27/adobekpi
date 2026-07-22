@@ -390,7 +390,7 @@
           <i data-lucide="plus" class="w-3.5 h-3.5"></i> 新增帳號
         </button>
       </div>
-      <div class="overflow-x-auto">
+      <div id="admin-accounts-wrap" class="overflow-x-auto">
         <table class="w-full text-xs">
           <thead class="text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/60">
             <tr>
@@ -420,7 +420,7 @@
           <span id="btn-perm-lock-label">解鎖編輯</span>
         </button>
       </div>
-      <div class="overflow-x-auto">
+      <div id="admin-perm-wrap" class="overflow-x-auto">
         <table class="w-full text-xs" id="perm-table">
           <thead class="text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/60">
             <tr id="perm-thead-row"></tr>
@@ -766,7 +766,11 @@ function switchTab(tab) {
   document.getElementById('view-table').classList.toggle('hidden', isDash || isAdmin);
   document.getElementById('view-admin').classList.toggle('hidden', !isAdmin);
 
-  if (isAdmin) { loadAdminTab(); setTimeout(()=>{ if(window.lucide)lucide.createIcons(); },50); return; }
+  if (isAdmin) {
+    loadAdminTab();
+    setTimeout(()=>{ if(window.lucide)lucide.createIcons(); if(window.attachHScroll) attachHScroll(document.getElementById('admin-perm-wrap')); },200);
+    return;
+  }
 
   const isMain = tab === 'main';
   document.getElementById('main-toolbar').classList.toggle('hidden', !isMain);
@@ -903,6 +907,7 @@ async function loadTable() {
     tblState.total = data.total;
     renderTable(data.rows, table);
     updatePager(data.total, page, limit);
+    if (window.attachHScroll) setTimeout(() => attachHScroll(document.getElementById('tbl-wrapper')), 100);
   } catch(e) {
     showToast('載入資料失敗：' + e.message, 'error');
   }
@@ -2176,6 +2181,41 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }, 100);
 });
+
+// ── Sticky horizontal scrollbar ───────────────────────────────────────────────
+(function() {
+  const bar = document.createElement('div');
+  bar.id = 'hscroll-bar';
+  bar.style.cssText = 'position:fixed;bottom:0;left:0;right:0;height:14px;overflow-x:auto;overflow-y:hidden;z-index:400;display:none';
+  const inner = document.createElement('div');
+  inner.id = 'hscroll-bar-inner';
+  inner.style.cssText = 'height:1px;';
+  bar.appendChild(inner);
+  document.body.appendChild(bar);
+
+  let target = null, syncing = false, ro = null;
+
+  function update() {
+    if (!target) return;
+    const sw = target.scrollWidth, cw = target.clientWidth;
+    inner.style.width = sw + 'px';
+    bar.style.display = sw > cw ? 'block' : 'none';
+    bar.scrollLeft = target.scrollLeft;
+  }
+
+  window.attachHScroll = function(el) {
+    if (target === el) { update(); return; }
+    if (ro) ro.disconnect();
+    target = el;
+    if (!el) { bar.style.display = 'none'; return; }
+    ro = new ResizeObserver(update);
+    ro.observe(el);
+    ro.observe(el.firstElementChild || el);
+    el.addEventListener('scroll', () => { if (syncing) return; syncing = true; bar.scrollLeft = el.scrollLeft; syncing = false; });
+    bar.addEventListener('scroll', () => { if (syncing) return; syncing = true; el.scrollLeft = bar.scrollLeft; syncing = false; });
+    update();
+  };
+})();
 </script>
 </body>
 </html>
