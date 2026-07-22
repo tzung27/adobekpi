@@ -1101,6 +1101,7 @@ function mselGetSelected(wrapId) {
 function mselUpdateLabel(wrap) {
   const sel = mselGetSelected(wrap.id);
   const btn = wrap.querySelector('.msel-btn');
+  if (!btn) return;
   const label = wrap.dataset.label;
   btn.textContent = sel.length === 0 ? label : `${label.replace(/所有\s*/,'')}: ${sel.length}選`;
   btn.classList.toggle('msel-active', sel.length > 0);
