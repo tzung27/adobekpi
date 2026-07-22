@@ -409,6 +409,10 @@
           class="text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 px-3 py-2 min-w-[110px] focus:outline-none focus:ring-2 focus:ring-indigo-500/40">
           <option value="">所有 Owner</option>
         </select>
+        <select id="filter-callname" onchange="applyFilters()"
+          class="text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 px-3 py-2 min-w-[130px] focus:outline-none focus:ring-2 focus:ring-indigo-500/40">
+          <option value="">所有 Call out 人員</option>
+        </select>
         <button id="btn-add-row" onclick="openNewRow()"
           class="ml-auto px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-semibold text-sm shadow-lg shadow-indigo-500/20 hover:brightness-110 active:scale-95 flex items-center gap-2 transition-all whitespace-nowrap">
           <i data-lucide="plus" class="w-4 h-4"></i> 新增資料
@@ -1055,9 +1059,10 @@ function debounceSearchGen() {
 // ── Filters (main table only) ─────────────────────────────────────────────────
 async function loadFilterOptions() {
   const flds = [
-    { id:'filter-status', col:'Attrition_Status', label:'所有 Status' },
-    { id:'filter-market', col:'市場別',           label:'所有市場別' },
-    { id:'filter-owner',  col:'Owner',            label:'所有 Owner' },
+    { id:'filter-status',   col:'Attrition_Status', label:'所有 Status' },
+    { id:'filter-market',   col:'市場別',           label:'所有市場別' },
+    { id:'filter-owner',    col:'Owner',            label:'所有 Owner' },
+    { id:'filter-callname', col:'Call_Name',        label:'所有 Call out 人員' },
   ];
   for (const f of flds) {
     const el = document.getElementById(f.id);
@@ -1074,16 +1079,17 @@ async function loadFilterOptions() {
   }
 }
 function resetFilters() {
-  ['filter-status','filter-market','filter-owner'].forEach(id => {
+  ['filter-status','filter-market','filter-owner','filter-callname'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = '';
   });
 }
 function applyFilters() {
   tblState.filters = {
-    'Attrition_Status': document.getElementById('filter-status')?.value || '',
-    '市場別':           document.getElementById('filter-market')?.value || '',
-    'Owner':            document.getElementById('filter-owner')?.value  || '',
+    'Attrition_Status': document.getElementById('filter-status')?.value   || '',
+    '市場別':           document.getElementById('filter-market')?.value   || '',
+    'Owner':            document.getElementById('filter-owner')?.value    || '',
+    'Call_Name':        document.getElementById('filter-callname')?.value || '',
   };
   // Remove empty filters
   Object.keys(tblState.filters).forEach(k => { if (!tblState.filters[k]) delete tblState.filters[k]; });
