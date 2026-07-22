@@ -60,6 +60,15 @@
   /* Thin progress bar at top */
   #prog-bar { height:3px; transition:width .3s ease; }
 
+  /* Column resize handle */
+  th { position:relative; }
+  .col-resizer {
+    position:absolute; right:0; top:0; bottom:0; width:6px;
+    cursor:col-resize; z-index:2;
+    background:transparent;
+  }
+  .col-resizer:hover, .col-resizer.dragging { background:rgba(99,102,241,.5); }
+
   /* ── Multi-select filter ── */
   .msel-wrap { position:relative; display:inline-block; }
   .msel-btn {
@@ -941,7 +950,12 @@ async function renderTable(rows, table) {
       const label = esc(keyToLabel[k] || k);
       const isSort = tblState.sortCol === k;
       const arrow = isSort ? (tblState.sortDir === 'ASC' ? ' ▲' : ' ▼') : '';
-      return `<th class="px-3 py-2.5 text-left whitespace-nowrap cursor-pointer select-none hover:text-indigo-500" style="color:${isSort?'#6366f1':_HEAD_CLR}" data-ci="${i}" title="${label}" onclick="tblSort('${k.replace(/'/g,"\\'")}')">${label}${arrow}</th>`;
+      const w = colWidths[k] ? `width:${colWidths[k]}px;min-width:${colWidths[k]}px;max-width:${colWidths[k]}px;` : '';
+      const color = isSort ? '#6366f1' : _HEAD_CLR;
+      return `<th class="px-3 py-2.5 text-left whitespace-nowrap select-none" style="${w}color:${color}" data-ci="${i}" data-col="${k}">` +
+        `<span class="cursor-pointer hover:text-indigo-500" onclick="tblSort('${k.replace(/'/g,"\\'")}')" title="${label}">${label}${arrow}</span>` +
+        `<div class="col-resizer" onmousedown="startColResize(event,'${k.replace(/'/g,"\\'")}')"></div>` +
+        `</th>`;
     }).join('') + actionTh + '</tr>';
 
   // Body
@@ -1195,6 +1209,36 @@ function resetFilters() {
     wrap.querySelectorAll('input[type=checkbox]').forEach(cb => cb.checked = false);
     mselUpdateLabel(wrap);
   });
+}
+
+// ── Column resize ─────────────────────────────────────────────────────────────
+const colWidths = {};
+function startColResize(e, col) {
+  e.preventDefault();
+  e.stopPropagation();
+  const th = e.target.closest('th');
+  const startX = e.clientX;
+  const startW = th.offsetWidth;
+  const resizer = e.target;
+  resizer.classList.add('dragging');
+  document.body.style.cursor = 'col-resize';
+  document.body.style.userSelect = 'none';
+  function onMove(ev) {
+    const newW = Math.max(40, startW + ev.clientX - startX);
+    colWidths[col] = newW;
+    th.style.width = newW + 'px';
+    th.style.minWidth = newW + 'px';
+    th.style.maxWidth = newW + 'px';
+  }
+  function onUp() {
+    resizer.classList.remove('dragging');
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup', onUp);
+  }
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup', onUp);
 }
 
 function tblSort(col) {
