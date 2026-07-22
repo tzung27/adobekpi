@@ -948,9 +948,9 @@ async function renderTable(rows, table) {
       }).join('') + actionTd + '</tr>';
   }).join('');
 
-  // Sticky first 3 cols
+  // Sticky first 0 cols (disabled)
   requestAnimationFrame(() => {
-    const FREEZE = Math.min(3, visibleKeys.length);
+    const FREEZE = 0;
     const ths = document.querySelectorAll('#tbl-head th');
     const offsets = [];
     let acc = 0;
