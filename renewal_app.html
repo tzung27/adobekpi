@@ -1494,9 +1494,11 @@ async function exportCSV() {
 async function refreshData() {
   const icon = document.getElementById('refresh-icon');
   icon.classList.add('animate-spin');
-  if (currentTab === 'dash') await loadStats();
-  else await loadTable();
-  setTimeout(() => icon.classList.remove('animate-spin'), 600);
+  try {
+    if (currentTab === 'dash') await loadStats();
+    else await loadTable();
+  } catch(e) { showToast('重新整理失敗', 'error'); }
+  finally { setTimeout(() => icon.classList.remove('animate-spin'), 600); }
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
