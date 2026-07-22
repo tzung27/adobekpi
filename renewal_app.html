@@ -1120,6 +1120,7 @@ function mselBuild(f, vals) {
 
   const dd = document.createElement('div');
   dd.className = 'msel-dropdown hidden';
+  dd.addEventListener('click', e => e.stopPropagation());
 
   const searchInput = document.createElement('input');
   searchInput.type = 'text';
