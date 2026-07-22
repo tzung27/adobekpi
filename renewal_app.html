@@ -706,7 +706,7 @@ const API = '';  // same origin
 
 // ── State ─────────────────────────────────────────────────────────────────────
 let currentTab = 'dash';
-let tblState = { table:'main_table', page:1, limit:100, q:'', total:0, filters:{} };
+let tblState = { table:'main_table', page:1, limit:100, q:'', total:0, filters:{}, sortCol:'', sortDir:'ASC' };
 let charts = {};
 let pendingFile = null;
 let searchTimer = null;
@@ -884,6 +884,7 @@ async function loadTable() {
   showProgress();
   try {
     let url = `/api/data/${table}?page=${page}&limit=${limit}`;
+    if (tblState.sortCol) url += `&sort_col=${encodeURIComponent(tblState.sortCol)}&sort_dir=${tblState.sortDir}`;
     if (q) url += '&q=' + encodeURIComponent(q);
     for (const [k, v] of Object.entries(filters)) {
       const vals = Array.isArray(v) ? v : (v ? [v] : []);
@@ -938,7 +939,9 @@ async function renderTable(rows, table) {
   head.innerHTML = '<tr>' +
     visibleKeys.map((k, i) => {
       const label = esc(keyToLabel[k] || k);
-      return `<th class="px-3 py-2.5 text-left whitespace-nowrap" style="color:${_HEAD_CLR}" data-ci="${i}" title="${label}">${label}</th>`;
+      const isSort = tblState.sortCol === k;
+      const arrow = isSort ? (tblState.sortDir === 'ASC' ? ' ▲' : ' ▼') : '';
+      return `<th class="px-3 py-2.5 text-left whitespace-nowrap cursor-pointer select-none hover:text-indigo-500" style="color:${isSort?'#6366f1':_HEAD_CLR}" data-ci="${i}" title="${label}" onclick="tblSort('${k.replace(/'/g,"\\'")}')">${label}${arrow}</th>`;
     }).join('') + actionTh + '</tr>';
 
   // Body
@@ -1192,6 +1195,17 @@ function resetFilters() {
     wrap.querySelectorAll('input[type=checkbox]').forEach(cb => cb.checked = false);
     mselUpdateLabel(wrap);
   });
+}
+
+function tblSort(col) {
+  if (tblState.sortCol === col) {
+    tblState.sortDir = tblState.sortDir === 'ASC' ? 'DESC' : 'ASC';
+  } else {
+    tblState.sortCol = col;
+    tblState.sortDir = 'ASC';
+  }
+  tblState.page = 1;
+  loadTable();
 }
 
 function applyFilters() {

@@ -530,6 +530,11 @@ def api_data(table):
 
     where_sql = f'WHERE {" AND ".join(where_clauses)}' if where_clauses else ''
 
+    # Sorting
+    sort_col = sanitize(request.args.get('sort_col', ''))
+    sort_dir = 'DESC' if request.args.get('sort_dir', '').upper() == 'DESC' else 'ASC'
+    order_sql = f'ORDER BY "{sort_col}" {sort_dir} NULLS LAST' if sort_col else ''
+
     total = conn.execute(f'SELECT COUNT(*) FROM "{table}" {where_sql}', params).fetchone()[0]
 
     # Get ordered column keys from col_meta
@@ -538,7 +543,7 @@ def api_data(table):
     ).fetchall()]
 
     rows = conn.execute(
-        f'SELECT rowid as _rid, * FROM "{table}" {where_sql} LIMIT ? OFFSET ?',
+        f'SELECT rowid as _rid, * FROM "{table}" {where_sql} {order_sql} LIMIT ? OFFSET ?',
         params + [limit, offset]
     ).fetchall()
 
