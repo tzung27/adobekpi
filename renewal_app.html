@@ -72,7 +72,7 @@
   .msel-btn.msel-active { border-color:#6366f1; color:#6366f1; background:#eef2ff; }
   .dark .msel-btn.msel-active { background:#1e1b4b; color:#a5b4fc; border-color:#6366f1; }
   .msel-dropdown {
-    position:fixed; z-index:9999;
+    position:absolute; top:calc(100% + 4px); left:0; z-index:9999;
     min-width:180px; max-width:260px;
     background:#fff; border:1px solid #e2e8f0; border-radius:.75rem;
     box-shadow:0 8px 24px rgba(0,0,0,.12); padding:.5rem;
@@ -429,7 +429,7 @@
     <!-- ── 總表 toolbar (editable mode) ── -->
     <div id="main-toolbar" class="hidden space-y-2">
       <!-- Row 1: search + filters + new button -->
-      <div class="flex flex-wrap gap-2 items-center bg-white/60 dark:bg-slate-800/40 px-4 py-3 rounded-2xl border border-slate-200/50 dark:border-slate-700/40 backdrop-blur-md">
+      <div class="relative z-[9999] flex flex-wrap gap-2 items-center bg-white/60 dark:bg-slate-800/40 px-4 py-3 rounded-2xl border border-slate-200/50 dark:border-slate-700/40 backdrop-blur-md">
         <div class="relative flex-1 min-w-[200px]">
           <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"></i>
           <input id="tbl-search" type="text" placeholder="搜尋 部門別、展碁業務、經銷商、客戶名稱…"
@@ -1164,9 +1164,6 @@ function mselToggle(wrap) {
   const isOpen = !dd.classList.contains('hidden');
   document.querySelectorAll('.msel-dropdown').forEach(d => d.classList.add('hidden'));
   if (!isOpen) {
-    const rect = wrap.getBoundingClientRect();
-    dd.style.top  = (rect.bottom + 4) + 'px';
-    dd.style.left = rect.left + 'px';
     dd.classList.remove('hidden');
     const search = dd.querySelector('.msel-search');
     if (search) { search.value = ''; search.dispatchEvent(new Event('input')); search.focus(); }
