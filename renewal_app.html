@@ -107,6 +107,7 @@
   .msel-list label:hover { background:#f1f5f9; }
   .dark .msel-list label:hover { background:#0f172a; }
   .msel-list input[type=checkbox] { accent-color:#6366f1; cursor:pointer; }
+  .msel-sep { border:none; border-top:2px dashed #86efac; margin:.3rem .2rem; }
 </style>
 </head>
 
@@ -1112,8 +1113,15 @@ function debounceSearchGen() {
 }
 
 // ── Multi-select filter widgets ───────────────────────────────────────────────
+// 進度 分組順序（每個子陣列之間插虛線）
+const PROGRESS_GROUPS = [
+  ['Close','Closed'],
+  ['Close Below','Closebelow','Commit','Upside','NC','NEW','New','NEW-Y','LOST','Lost'],
+  ['ETLA'],
+];
+
 const MSEL_FIELDS = [
-  { wrap:'msel-progress', col:'進度',             label:'所有進度' },
+  { wrap:'msel-progress', col:'進度',             label:'所有進度', groups: PROGRESS_GROUPS },
   { wrap:'msel-status',   col:'Attrition_Status', label:'所有 Status' },
   { wrap:'msel-market',   col:'市場別',           label:'所有市場別' },
   { wrap:'msel-owner',    col:'Owner',            label:'所有 Owner' },
@@ -1208,7 +1216,8 @@ function mselBuild(f, vals) {
 
   const list = document.createElement('div');
   list.className = 'msel-list';
-  vals.filter(v => v !== null && v !== '').forEach(v => {
+
+  function addCheckbox(v) {
     const lbl = document.createElement('label');
     const cb = document.createElement('input');
     cb.type = 'checkbox'; cb.value = v;
@@ -1220,7 +1229,24 @@ function mselBuild(f, vals) {
     lbl.appendChild(cb);
     lbl.appendChild(document.createTextNode(' ' + v));
     list.appendChild(lbl);
-  });
+  }
+
+  const cleanVals = vals.filter(v => v !== null && v !== '');
+  if (f.groups) {
+    // Custom grouped order with dashed separators
+    const used = new Set();
+    f.groups.forEach((group, gi) => {
+      if (gi > 0) { const hr = document.createElement('hr'); hr.className = 'msel-sep'; list.appendChild(hr); }
+      group.forEach(key => {
+        const match = cleanVals.find(v => v === key);
+        if (match && !used.has(match)) { used.add(match); addCheckbox(match); }
+      });
+    });
+    // Remaining values not in any group
+    cleanVals.forEach(v => { if (!used.has(v)) addCheckbox(v); });
+  } else {
+    cleanVals.forEach(v => addCheckbox(v));
+  }
   dd.appendChild(list);
   wrap.appendChild(dd);
 }
