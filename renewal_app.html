@@ -1122,17 +1122,27 @@ const PROGRESS_GROUPS = [
 ];
 
 // Lost Reason 分組順序
+const _LR2 = [
+  'Account consolidation',
+  'A.com','CCI','A.com，CCI','A.com, CCI',
+  '改用 AIGC','改用AIGC','改用AI','改用 AI',
+  'New VIP - 3year','New VIP - 2year','New VIP -1year or below','New VIP - 1year or below',
+  'LM: VIP to other countries','LM-整併VIP','LM-多買',
+  '轉換其他廠牌',
+];
+const _LR3 = ['Company downsized / No User','Shut Down','No Budget','Low usage / Low deployment','Unknown /no feedback','Unable to reach','Others'];
+
 const LOSTREASON_GROUPS = [
   ['ETLA'],
-  ['Account consolidation','A.com','CCI','改用 AIGC','New VIP - 3year','New VIP - 2year','New VIP -1year or below','LM: VIP to other countries'],
-  ['Company downsized / No User','Shut Down','No Budget','Low usage / Low deployment','Unknown /no feedback','Unable to reach','Others'],
+  _LR2,
+  _LR3,
 ];
 
 // Status → Lost Reason 連動
 const STATUS_LOSTREASON_MAP = {
   'Change_License': ['ETLA'],
-  'Change_to_NEW':  ['Account consolidation','A.com','CCI','改用 AIGC','New VIP - 3year','New VIP - 2year','New VIP -1year or below','LM: VIP to other countries'],
-  'True_Cancel':    ['Company downsized / No User','Shut Down','No Budget','Low usage / Low deployment','Unknown /no feedback','Unable to reach','Others'],
+  'Change_to_NEW':  _LR2,
+  'True_Cancel':    _LR3,
 };
 
 function syncLostReasonFilter(selectedStatus) {
