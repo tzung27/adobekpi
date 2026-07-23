@@ -281,104 +281,201 @@
 <main class="max-w-[1700px] mx-auto px-6 py-8 relative z-10 space-y-0">
 
   <!-- ─── DASHBOARD ─── -->
-  <div id="view-dash" class="space-y-8">
+  <div id="view-dash" class="space-y-5">
 
-    <!-- KPI Cards -->
-    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-5">
-      <div class="glowing-card col-span-1 p-5 rounded-2xl bg-white dark:bg-darkCard border border-slate-100 dark:border-slate-800/50 shadow-sm hover:-translate-y-1 transition-all duration-300">
-        <div class="p-2.5 bg-indigo-500/10 text-indigo-500 rounded-xl w-fit mb-3">
-          <i data-lucide="file-text" class="w-5 h-5"></i>
-        </div>
-        <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">總表筆數</p>
-        <h3 id="kpi-main" class="text-2xl font-extrabold text-slate-800 dark:text-white mt-1">—</h3>
+    <!-- Time & Filter bar -->
+    <div class="p-4 rounded-2xl bg-white dark:bg-darkCard border border-slate-100 dark:border-slate-800/50 shadow-sm space-y-3">
+      <div class="flex flex-wrap items-center gap-2">
+        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest w-14 shrink-0">時間</span>
+        <div class="msel-wrap" id="dash-msel-year"    data-label="年度"></div>
+        <div class="msel-wrap" id="dash-msel-quarter" data-label="季度"></div>
+        <div class="msel-wrap" id="dash-msel-month"   data-label="月份"></div>
+        <div class="msel-wrap" id="dash-msel-week"    data-label="週別"></div>
       </div>
-      <div class="glowing-card col-span-1 p-5 rounded-2xl bg-white dark:bg-darkCard border border-slate-100 dark:border-slate-800/50 shadow-sm hover:-translate-y-1 transition-all duration-300">
-        <div class="p-2.5 bg-cyan-500/10 text-cyan-500 rounded-xl w-fit mb-3">
-          <i data-lucide="database" class="w-5 h-5"></i>
-        </div>
-        <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">RBOB 筆數</p>
-        <h3 id="kpi-rbob" class="text-2xl font-extrabold text-slate-800 dark:text-white mt-1">—</h3>
-      </div>
-      <div class="glowing-card col-span-1 p-5 rounded-2xl bg-white dark:bg-darkCard border border-slate-100 dark:border-slate-800/50 shadow-sm hover:-translate-y-1 transition-all duration-300">
-        <div class="p-2.5 bg-star-500/10 text-amber-500 rounded-xl w-fit mb-3">
-          <i data-lucide="star" class="w-5 h-5"></i>
-        </div>
-        <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Key Account</p>
-        <h3 id="kpi-ka" class="text-2xl font-extrabold text-slate-800 dark:text-white mt-1">—</h3>
-      </div>
-      <div class="glowing-card col-span-1 p-5 rounded-2xl bg-white dark:bg-darkCard border border-slate-100 dark:border-slate-800/50 shadow-sm hover:-translate-y-1 transition-all duration-300">
-        <div class="p-2.5 bg-emerald-500/10 text-emerald-500 rounded-xl w-fit mb-3">
-          <i data-lucide="trending-up" class="w-5 h-5"></i>
-        </div>
-        <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">統整報表</p>
-        <h3 id="kpi-tongji" class="text-2xl font-extrabold text-slate-800 dark:text-white mt-1">—</h3>
-      </div>
-      <div class="glowing-card col-span-1 p-5 rounded-2xl bg-white dark:bg-darkCard border border-slate-100 dark:border-slate-800/50 shadow-sm hover:-translate-y-1 transition-all duration-300">
-        <div class="p-2.5 bg-pink-500/10 text-pink-500 rounded-xl w-fit mb-3">
-          <i data-lucide="check-circle" class="w-5 h-5"></i>
-        </div>
-        <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Closed 筆數</p>
-        <h3 id="kpi-closed" class="text-2xl font-extrabold text-slate-800 dark:text-white mt-1">—</h3>
-      </div>
-      <div class="glowing-card col-span-1 p-5 rounded-2xl bg-white dark:bg-darkCard border border-slate-100 dark:border-slate-800/50 shadow-sm hover:-translate-y-1 transition-all duration-300">
-        <div class="p-2.5 bg-rose-500/10 text-rose-500 rounded-xl w-fit mb-3">
-          <i data-lucide="alert-triangle" class="w-5 h-5"></i>
-        </div>
-        <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">流失 (Attrition)</p>
-        <h3 id="kpi-attrition" class="text-2xl font-extrabold text-slate-800 dark:text-white mt-1">—</h3>
+      <div class="flex flex-wrap items-center gap-2">
+        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest w-14 shrink-0">篩選</span>
+        <div class="msel-wrap" id="dash-msel-progress"   data-label="進度"></div>
+        <div class="msel-wrap" id="dash-msel-owner"      data-label="Owner"></div>
+        <div class="msel-wrap" id="dash-msel-callname"   data-label="Call Out 人員"></div>
+        <div class="msel-wrap" id="dash-msel-market"     data-label="市場別"></div>
+        <div class="msel-wrap" id="dash-msel-status"     data-label="Attrition Status"></div>
+        <div class="msel-wrap" id="dash-msel-lostreason" data-label="Lost Reason"></div>
+        <div class="msel-wrap" id="dash-msel-dept"       data-label="部門別"></div>
+        <div class="msel-wrap" id="dash-msel-reseller"   data-label="經銷商"></div>
+        <button onclick="clearDashFilters()"
+          class="ml-auto px-3 py-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+          清除篩選
+        </button>
       </div>
     </div>
 
-    <!-- Charts row -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <!-- 進度分佈 -->
-      <div class="p-6 rounded-2xl bg-white dark:bg-darkCard border border-slate-200/50 dark:border-slate-800/50 shadow-sm">
-        <h4 class="text-sm font-bold text-slate-700 dark:text-white mb-4 flex items-center gap-2">
-          <span class="w-1.5 h-4 bg-indigo-500 rounded-full"></span> 進度分佈
-        </h4>
-        <canvas id="chart-status" class="max-h-56"></canvas>
+    <!-- Total KPIs -->
+    <div class="grid grid-cols-2 gap-4">
+      <div class="p-5 rounded-2xl bg-white dark:bg-darkCard border border-slate-100 dark:border-slate-800/50 shadow-sm flex items-center gap-4">
+        <div class="p-3 bg-indigo-500/10 text-indigo-500 rounded-xl shrink-0">
+          <i data-lucide="users" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">總合約數</p>
+          <h3 id="dash-kpi-total-accounts" class="text-2xl font-extrabold text-slate-800 dark:text-white mt-0.5">—</h3>
+        </div>
       </div>
-      <!-- Owner分佈 -->
-      <div class="p-6 rounded-2xl bg-white dark:bg-darkCard border border-slate-200/50 dark:border-slate-800/50 shadow-sm">
-        <h4 class="text-sm font-bold text-slate-700 dark:text-white mb-4 flex items-center gap-2">
-          <span class="w-1.5 h-4 bg-purple-500 rounded-full"></span> Owner 分佈
-        </h4>
-        <div id="chart-owner" class="space-y-2 max-h-56 overflow-y-auto pr-1"></div>
-      </div>
-      <!-- 市場別分佈 -->
-      <div class="p-6 rounded-2xl bg-white dark:bg-darkCard border border-slate-200/50 dark:border-slate-800/50 shadow-sm">
-        <h4 class="text-sm font-bold text-slate-700 dark:text-white mb-4 flex items-center gap-2">
-          <span class="w-1.5 h-4 bg-cyan-500 rounded-full"></span> 市場別分佈
-        </h4>
-        <canvas id="chart-market" class="max-h-56"></canvas>
+      <div class="p-5 rounded-2xl bg-white dark:bg-darkCard border border-slate-100 dark:border-slate-800/50 shadow-sm flex items-center gap-4">
+        <div class="p-3 bg-sky-500/10 text-sky-500 rounded-xl shrink-0">
+          <i data-lucide="dollar-sign" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">總 Base ARR</p>
+          <h3 id="dash-kpi-total-arr" class="text-2xl font-extrabold text-slate-800 dark:text-white mt-0.5">—</h3>
+        </div>
       </div>
     </div>
 
-    <!-- Charts row 2 -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <!-- 部門別 -->
-      <div class="p-6 rounded-2xl bg-white dark:bg-darkCard border border-slate-200/50 dark:border-slate-800/50 shadow-sm">
-        <h4 class="text-sm font-bold text-slate-700 dark:text-white mb-4 flex items-center gap-2">
-          <span class="w-1.5 h-4 bg-emerald-500 rounded-full"></span> 部門別統計
-        </h4>
-        <div id="chart-dept" class="space-y-2"></div>
+    <!-- KA & RR sections -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+      <!-- Key Account -->
+      <div class="p-5 rounded-2xl bg-white dark:bg-darkCard border border-indigo-200 dark:border-indigo-900/40 shadow-sm">
+        <div class="flex items-center gap-2 mb-4">
+          <span class="w-2 h-5 bg-indigo-500 rounded-full"></span>
+          <h4 class="text-sm font-bold text-indigo-600 dark:text-indigo-400">
+            Key Account
+            <span class="font-normal text-slate-400 text-xs ml-1">Renew Base ≥ $10K</span>
+          </h4>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div class="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-3">
+            <p class="text-[10px] text-slate-400 uppercase tracking-wider mb-1">合約數</p>
+            <p id="dash-kpi-ka-accounts" class="text-xl font-extrabold text-slate-800 dark:text-white">—</p>
+          </div>
+          <div class="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-3">
+            <p class="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Base ARR</p>
+            <p id="dash-kpi-ka-arr" class="text-xl font-extrabold text-slate-800 dark:text-white">—</p>
+          </div>
+          <div class="bg-indigo-50 dark:bg-indigo-900/20 rounded-xl p-3">
+            <p class="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Close 合約數</p>
+            <p id="dash-kpi-ka-close-accounts" class="text-xl font-extrabold text-indigo-600 dark:text-indigo-400">—</p>
+          </div>
+          <div class="bg-indigo-50 dark:bg-indigo-900/20 rounded-xl p-3">
+            <p class="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Close ARR</p>
+            <p id="dash-kpi-ka-close-arr" class="text-xl font-extrabold text-indigo-600 dark:text-indigo-400">—</p>
+          </div>
+        </div>
       </div>
-      <!-- 經銷商 TOP 15 -->
-      <div class="p-6 rounded-2xl bg-white dark:bg-darkCard border border-slate-200/50 dark:border-slate-800/50 shadow-sm">
-        <h4 class="text-sm font-bold text-slate-700 dark:text-white mb-4 flex items-center gap-2">
-          <span class="w-1.5 h-4 bg-amber-500 rounded-full"></span> 經銷商 TOP 15
-        </h4>
-        <div id="chart-reseller" class="space-y-2 max-h-72 overflow-y-auto pr-1"></div>
+
+      <!-- Run Rate -->
+      <div class="p-5 rounded-2xl bg-white dark:bg-darkCard border border-emerald-200 dark:border-emerald-900/40 shadow-sm">
+        <div class="flex items-center gap-2 mb-4">
+          <span class="w-2 h-5 bg-emerald-500 rounded-full"></span>
+          <h4 class="text-sm font-bold text-emerald-600 dark:text-emerald-400">
+            Run Rate
+            <span class="font-normal text-slate-400 text-xs ml-1">Renew Base &lt; $10K</span>
+          </h4>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div class="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-3">
+            <p class="text-[10px] text-slate-400 uppercase tracking-wider mb-1">合約數</p>
+            <p id="dash-kpi-rr-accounts" class="text-xl font-extrabold text-slate-800 dark:text-white">—</p>
+          </div>
+          <div class="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-3">
+            <p class="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Base ARR</p>
+            <p id="dash-kpi-rr-arr" class="text-xl font-extrabold text-slate-800 dark:text-white">—</p>
+          </div>
+          <div class="bg-emerald-50 dark:bg-emerald-900/20 rounded-xl p-3">
+            <p class="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Close 合約數</p>
+            <p id="dash-kpi-rr-close-accounts" class="text-xl font-extrabold text-emerald-600 dark:text-emerald-400">—</p>
+          </div>
+          <div class="bg-emerald-50 dark:bg-emerald-900/20 rounded-xl p-3">
+            <p class="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Close ARR</p>
+            <p id="dash-kpi-rr-close-arr" class="text-xl font-extrabold text-emerald-600 dark:text-emerald-400">—</p>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- Import log -->
-    <div class="p-6 rounded-2xl bg-white dark:bg-darkCard border border-slate-200/50 dark:border-slate-800/50 shadow-sm">
-      <h4 class="text-sm font-bold text-slate-700 dark:text-white mb-4 flex items-center gap-2">
-        <span class="w-1.5 h-4 bg-slate-400 rounded-full"></span> 匯入記錄
+    <!-- Charts header -->
+    <div class="flex items-center justify-between">
+      <h4 class="text-sm font-bold text-slate-700 dark:text-slate-300 flex items-center gap-2">
+        <i data-lucide="bar-chart-2" class="w-4 h-4 text-indigo-400"></i> 圖表分析
       </h4>
-      <div id="import-log" class="text-xs text-slate-400">載入中…</div>
+      <div class="flex rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden text-xs font-semibold">
+        <button id="dash-metric-cnt" onclick="setDashMetric('cnt')"
+          class="px-3 py-1.5 bg-indigo-500 text-white">合約數</button>
+        <button id="dash-metric-arr" onclick="setDashMetric('arr')"
+          class="px-3 py-1.5 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800">ARR</button>
+      </div>
     </div>
+
+    <!-- Charts grid -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="p-4 rounded-2xl bg-white dark:bg-darkCard border border-slate-100 dark:border-slate-800/50 shadow-sm">
+        <p class="text-xs font-bold text-slate-500 mb-3 flex items-center gap-1.5">
+          <span class="w-1.5 h-3.5 bg-indigo-500 rounded-full"></span>進度
+        </p>
+        <div style="position:relative;height:200px"><canvas id="dash-chart-progress"></canvas></div>
+      </div>
+      <div class="p-4 rounded-2xl bg-white dark:bg-darkCard border border-slate-100 dark:border-slate-800/50 shadow-sm">
+        <p class="text-xs font-bold text-slate-500 mb-3 flex items-center gap-1.5">
+          <span class="w-1.5 h-3.5 bg-purple-500 rounded-full"></span>Owner
+        </p>
+        <div style="position:relative;height:200px"><canvas id="dash-chart-owner"></canvas></div>
+      </div>
+      <div class="p-4 rounded-2xl bg-white dark:bg-darkCard border border-slate-100 dark:border-slate-800/50 shadow-sm">
+        <p class="text-xs font-bold text-slate-500 mb-3 flex items-center gap-1.5">
+          <span class="w-1.5 h-3.5 bg-cyan-500 rounded-full"></span>Call Out 人員
+        </p>
+        <div style="position:relative;height:200px"><canvas id="dash-chart-callname"></canvas></div>
+      </div>
+      <div class="p-4 rounded-2xl bg-white dark:bg-darkCard border border-slate-100 dark:border-slate-800/50 shadow-sm">
+        <p class="text-xs font-bold text-slate-500 mb-3 flex items-center gap-1.5">
+          <span class="w-1.5 h-3.5 bg-amber-500 rounded-full"></span>市場別
+        </p>
+        <div style="position:relative;height:200px"><canvas id="dash-chart-market"></canvas></div>
+      </div>
+      <div class="p-4 rounded-2xl bg-white dark:bg-darkCard border border-slate-100 dark:border-slate-800/50 shadow-sm">
+        <p class="text-xs font-bold text-slate-500 mb-3 flex items-center gap-1.5">
+          <span class="w-1.5 h-3.5 bg-rose-500 rounded-full"></span>Attrition Status
+        </p>
+        <div style="position:relative;height:200px"><canvas id="dash-chart-status"></canvas></div>
+      </div>
+      <div class="p-4 rounded-2xl bg-white dark:bg-darkCard border border-slate-100 dark:border-slate-800/50 shadow-sm">
+        <p class="text-xs font-bold text-slate-500 mb-3 flex items-center gap-1.5">
+          <span class="w-1.5 h-3.5 bg-orange-500 rounded-full"></span>Lost Reason
+        </p>
+        <div style="position:relative;height:200px"><canvas id="dash-chart-lostreason"></canvas></div>
+      </div>
+      <div class="p-4 rounded-2xl bg-white dark:bg-darkCard border border-slate-100 dark:border-slate-800/50 shadow-sm">
+        <p class="text-xs font-bold text-slate-500 mb-3 flex items-center gap-1.5">
+          <span class="w-1.5 h-3.5 bg-emerald-500 rounded-full"></span>部門別
+        </p>
+        <div style="position:relative;height:200px"><canvas id="dash-chart-dept"></canvas></div>
+      </div>
+      <div class="p-4 rounded-2xl bg-white dark:bg-darkCard border border-slate-100 dark:border-slate-800/50 shadow-sm">
+        <p class="text-xs font-bold text-slate-500 mb-3 flex items-center gap-1.5">
+          <span class="w-1.5 h-3.5 bg-sky-500 rounded-full"></span>Top 15 經銷商
+        </p>
+        <div style="position:relative;height:200px"><canvas id="dash-chart-reseller"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Import History (collapsible + resizable) -->
+    <div class="rounded-2xl bg-white dark:bg-darkCard border border-slate-100 dark:border-slate-800/50 shadow-sm overflow-hidden">
+      <button onclick="toggleImportLog()"
+        class="w-full flex items-center justify-between p-4 text-left hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+        <h4 class="text-sm font-bold text-slate-700 dark:text-slate-300 flex items-center gap-2">
+          <i data-lucide="history" class="w-4 h-4 text-slate-400"></i> 匯入記錄
+        </h4>
+        <i id="import-log-chevron" data-lucide="chevron-down" class="w-4 h-4 text-slate-400 transition-transform duration-200"></i>
+      </button>
+      <div id="import-log-body" class="hidden border-t border-slate-100 dark:border-slate-800">
+        <div id="import-log-resize"
+          style="height:240px;resize:vertical;overflow-y:auto;min-height:100px;max-height:600px;"
+          class="p-4">
+          <div id="import-log" class="text-xs text-slate-400">載入中…</div>
+        </div>
+      </div>
+    </div>
+
   </div>
 
   <!-- ─── ADMIN VIEW ─── -->
@@ -807,96 +904,244 @@ function switchTab(tab) {
 }
 
 // ── Stats / Dashboard ─────────────────────────────────────────────────────────
-async function loadStats() {
+// ── Dashboard state ───────────────────────────────────────────────────────────
+let dashFilters = {
+  year:[], quarter:[], month:[], week:[],
+  progress:[], owner:[], callname:[], market:[],
+  status:[], lostreason:[], dept:[], reseller:[]
+};
+let dashMetric = 'cnt';
+let dashCharts = {};
+let dashOptionsLoaded = false;
+let _dashLastData = null;
+
+function fmtARR(v) {
+  if (v == null || isNaN(Number(v))) return '—';
+  const n = Number(v);
+  if (Math.abs(n) >= 1000000) return '$' + (n / 1000000).toFixed(2) + 'M';
+  if (Math.abs(n) >= 1000) return '$' + Math.round(n / 1000) + 'K';
+  return '$' + Math.round(n);
+}
+
+function mselBuildDash(wrapId, label, vals, onChange) {
+  const wrap = document.getElementById(wrapId);
+  if (!wrap) return;
+  wrap.innerHTML = '';
+  const btn = document.createElement('button');
+  btn.type = 'button'; btn.className = 'msel-btn';
+  btn.textContent = label;
+  btn.onclick = e => { e.stopPropagation(); mselToggle(wrap); };
+  wrap.appendChild(btn);
+
+  const dd = document.createElement('div');
+  dd.className = 'msel-dropdown hidden';
+  dd.addEventListener('click', e => e.stopPropagation());
+
+  const search = document.createElement('input');
+  search.type = 'text'; search.placeholder = '搜尋…'; search.className = 'msel-search';
+  search.oninput = () => {
+    const q = search.value.toLowerCase();
+    dd.querySelectorAll('label').forEach(l => {
+      l.style.display = l.textContent.toLowerCase().includes(q) ? '' : 'none';
+    });
+  };
+  dd.appendChild(search);
+
+  const clearBtn = document.createElement('button');
+  clearBtn.type = 'button'; clearBtn.className = 'msel-clear'; clearBtn.textContent = '清除';
+  clearBtn.onclick = () => {
+    dd.querySelectorAll('input[type=checkbox]').forEach(cb => cb.checked = false);
+    mselUpdateLabel(wrap); onChange();
+  };
+  dd.appendChild(clearBtn);
+
+  const list = document.createElement('div'); list.className = 'msel-list';
+  vals.filter(v => v != null && v !== '').forEach(v => {
+    const lbl = document.createElement('label');
+    const cb = document.createElement('input');
+    cb.type = 'checkbox'; cb.value = v;
+    cb.onchange = () => { mselUpdateLabel(wrap); onChange(); };
+    lbl.appendChild(cb); lbl.appendChild(document.createTextNode(' ' + v));
+    list.appendChild(lbl);
+  });
+  dd.appendChild(list); wrap.appendChild(dd);
+}
+
+function buildAllDashMsels(opts) {
+  const fields = [
+    ['dash-msel-year',      'year',       opts.year,       '年度'],
+    ['dash-msel-quarter',   'quarter',    opts.quarter,    '季度'],
+    ['dash-msel-month',     'month',      opts.month,      '月份'],
+    ['dash-msel-week',      'week',       opts.week,       '週別'],
+    ['dash-msel-progress',  'progress',   opts.progress,   '進度'],
+    ['dash-msel-owner',     'owner',      opts.owner,      'Owner'],
+    ['dash-msel-callname',  'callname',   opts.callname,   'Call Out 人員'],
+    ['dash-msel-market',    'market',     opts.market,     '市場別'],
+    ['dash-msel-status',    'status',     opts.status,     'Attrition Status'],
+    ['dash-msel-lostreason','lostreason', opts.lostreason, 'Lost Reason'],
+    ['dash-msel-dept',      'dept',       opts.dept,       '部門別'],
+    ['dash-msel-reseller',  'reseller',   opts.reseller,   '經銷商'],
+  ];
+  fields.forEach(([id, key, vals, label]) => {
+    mselBuildDash(id, label, vals || [], () => {
+      const wrap = document.getElementById(id);
+      dashFilters[key] = wrap
+        ? [...wrap.querySelectorAll('input[type=checkbox]:checked')].map(cb => cb.value)
+        : [];
+      loadDashboard();
+    });
+  });
+}
+
+function clearDashFilters() {
+  Object.keys(dashFilters).forEach(k => { dashFilters[k] = []; });
+  document.querySelectorAll('[id^="dash-msel-"] input[type=checkbox]').forEach(cb => { cb.checked = false; });
+  document.querySelectorAll('[id^="dash-msel-"]').forEach(w => mselUpdateLabel(w));
+  loadDashboard();
+}
+
+function setDashMetric(m) {
+  dashMetric = m;
+  const active = 'px-3 py-1.5 bg-indigo-500 text-white';
+  const inactive = 'px-3 py-1.5 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800';
+  document.getElementById('dash-metric-cnt').className = m === 'cnt' ? active : inactive;
+  document.getElementById('dash-metric-arr').className = m === 'arr' ? active : inactive;
+  if (_dashLastData) renderDashCharts(_dashLastData.charts || {});
+}
+
+function toggleImportLog() {
+  const body = document.getElementById('import-log-body');
+  const chevron = document.getElementById('import-log-chevron');
+  if (!body) return;
+  const isHidden = body.classList.toggle('hidden');
+  if (chevron) chevron.style.transform = isHidden ? '' : 'rotate(180deg)';
+}
+
+async function loadDashboard() {
+  const params = new URLSearchParams();
+  for (const [k, vals] of Object.entries(dashFilters)) {
+    vals.forEach(v => params.append(k, v));
+  }
   try {
-    const data = await fetchJSON('/api/stats');
-    renderStats(data);
-  } catch(e) {
-    console.error('Stats error', e);
-  }
-}
-
-function renderStats(d) {
-  setText('kpi-main',      fmt(d.total));
-  setText('kpi-rbob',      fmt(d.rbob_total));
-  setText('kpi-ka',        fmt(d.key_account_total));
-  setText('kpi-tongji',    fmt(d.tongji_total));
-
-  // Count Closed and Attrition from by_status
-  let closed = 0, attrition = 0;
-  (d.by_status || []).forEach(r => {
-    const s = (r.s || '').toLowerCase();
-    if (s.includes('closed') || s.includes('close')) closed += r.n;
-    if (s.includes('true_cancel') || s.includes('attrition')) attrition += r.n;
-  });
-  setText('kpi-closed',    fmt(closed));
-  setText('kpi-attrition', fmt(attrition));
-
-  if (d.last_import) {
-    document.getElementById('last-import-label').textContent =
-      `最後匯入：${d.last_import.filename}  ${d.last_import.imported_at}`;
-  }
-
-  renderStatusChart(d.by_status || []);
-  renderBarList('chart-owner',   d.by_owner   || [], '#8b5cf6');
-  renderBarList('chart-dept',    d.by_dept    || [], '#10b981');
-  renderBarList('chart-reseller',d.by_reseller|| [], '#f59e0b');
-  renderMarketChart(d.by_market || []);
-}
-
-function renderStatusChart(rows) {
-  const ctx = document.getElementById('chart-status');
-  if (!ctx || !window.Chart) return;
-  if (charts.status) charts.status.destroy();
-  if (!rows.length) return;
-  charts.status = new Chart(ctx, {
-    type: 'doughnut',
-    data: {
-      labels: rows.map(r => r.s || '(空)'),
-      datasets: [{ data: rows.map(r => r.n), backgroundColor: STATUS_COLORS, borderWidth: 0 }]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: {
-        legend: { position:'bottom', labels:{ color: isDark() ? '#94a3b8':'#475569', font:{size:11}, padding:8 } }
-      }
+    const data = await fetchJSON('/api/dashboard?' + params.toString());
+    _dashLastData = data;
+    renderDashboard(data);
+    if (!dashOptionsLoaded) {
+      buildAllDashMsels(data.options || {});
+      dashOptionsLoaded = true;
+      if (window.lucide) lucide.createIcons();
     }
-  });
+  } catch(e) { console.error('Dashboard error', e); }
 }
 
-function renderMarketChart(rows) {
-  const ctx = document.getElementById('chart-market');
-  if (!ctx || !window.Chart) return;
-  if (charts.market) charts.market.destroy();
-  if (!rows.length) return;
-  charts.market = new Chart(ctx, {
-    type: 'pie',
-    data: {
-      labels: rows.map(r => r.s || '(空)'),
-      datasets: [{ data: rows.map(r => r.n), backgroundColor: STATUS_COLORS.slice(3), borderWidth: 0 }]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: {
-        legend: { position:'bottom', labels:{ color: isDark() ? '#94a3b8':'#475569', font:{size:11}, padding:8 } }
+function renderDashboard(data) {
+  const k = data.kpis || {};
+  setText('dash-kpi-total-accounts',    fmt(k.total_accounts));
+  setText('dash-kpi-total-arr',         fmtARR(k.total_base_arr));
+  setText('dash-kpi-ka-accounts',       fmt(k.ka_accounts));
+  setText('dash-kpi-ka-arr',            fmtARR(k.ka_base_arr));
+  setText('dash-kpi-ka-close-accounts', fmt(k.ka_close_accounts));
+  setText('dash-kpi-ka-close-arr',      fmtARR(k.ka_close_arr));
+  setText('dash-kpi-rr-accounts',       fmt(k.rr_accounts));
+  setText('dash-kpi-rr-arr',            fmtARR(k.rr_base_arr));
+  setText('dash-kpi-rr-close-accounts', fmt(k.rr_close_accounts));
+  setText('dash-kpi-rr-close-arr',      fmtARR(k.rr_close_arr));
+  renderDashCharts(data.charts || {});
+  renderImportLog(data.import_log || []);
+}
+
+const DASH_CHART_CFG = [
+  { key:'progress',   id:'dash-chart-progress',   color:'#6366f1' },
+  { key:'owner',      id:'dash-chart-owner',       color:'#8b5cf6' },
+  { key:'callname',   id:'dash-chart-callname',    color:'#06b6d4' },
+  { key:'market',     id:'dash-chart-market',      color:'#f59e0b' },
+  { key:'status',     id:'dash-chart-status',      color:'#ef4444' },
+  { key:'lostreason', id:'dash-chart-lostreason',  color:'#f97316' },
+  { key:'dept',       id:'dash-chart-dept',        color:'#10b981' },
+  { key:'reseller',   id:'dash-chart-reseller',    color:'#0ea5e9' },
+];
+
+function renderDashCharts(charts) {
+  const dark = isDark();
+  DASH_CHART_CFG.forEach(spec => {
+    const rows = (charts[spec.key] || []).slice(0, 15);
+    const canvas = document.getElementById(spec.id);
+    if (!canvas || !window.Chart) return;
+    if (dashCharts[spec.key]) { dashCharts[spec.key].destroy(); delete dashCharts[spec.key]; }
+    if (!rows.length) return;
+    const labels = rows.map(r => r.s || '(空)');
+    const values = dashMetric === 'arr' ? rows.map(r => r.arr || 0) : rows.map(r => r.cnt);
+    dashCharts[spec.key] = new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [{
+          data: values,
+          backgroundColor: spec.color + 'bb',
+          borderColor: spec.color,
+          borderWidth: 1,
+          borderRadius: 4,
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: ctx => dashMetric === 'arr'
+                ? fmtARR(ctx.parsed.x)
+                : ctx.parsed.x + ' 件'
+            }
+          }
+        },
+        scales: {
+          x: {
+            grid: { color: dark ? '#1e293b' : '#f1f5f9' },
+            ticks: { color: dark ? '#94a3b8' : '#64748b', font: { size: 10 } }
+          },
+          y: {
+            grid: { display: false },
+            ticks: { color: dark ? '#94a3b8' : '#475569', font: { size: 10 }, maxRotation: 0 }
+          }
+        }
       }
-    }
+    });
   });
 }
 
-function renderBarList(elId, rows, color) {
-  const el = document.getElementById(elId);
-  if (!el || !rows.length) { if(el) el.innerHTML = '<p class="text-xs text-slate-400">無資料</p>'; return; }
-  const max = Math.max(...rows.map(r => r.n), 1);
-  el.innerHTML = rows.map(r => `
-    <div class="flex items-center gap-2 text-xs">
-      <span class="text-slate-500 dark:text-slate-400 w-32 truncate shrink-0" title="${esc(r.s)}">${esc(r.s) || '(空)'}</span>
-      <div class="flex-1 bg-slate-100 dark:bg-slate-800 rounded-full h-2 overflow-hidden">
-        <div class="h-full rounded-full" style="width:${Math.round(r.n/max*100)}%;background:${color}"></div>
-      </div>
-      <span class="text-slate-600 dark:text-slate-300 font-semibold w-8 text-right">${r.n}</span>
-    </div>`).join('');
+function renderImportLog(rows) {
+  const el = document.getElementById('import-log');
+  if (!el) return;
+  if (!rows.length) { el.innerHTML = '<p class="text-slate-400">無匯入記錄</p>'; return; }
+  el.innerHTML = `
+    <table class="w-full border-collapse text-xs">
+      <thead>
+        <tr class="text-left text-slate-400 border-b border-slate-100 dark:border-slate-800">
+          <th class="py-1.5 pr-3 font-semibold">#</th>
+          <th class="py-1.5 pr-3 font-semibold">檔名</th>
+          <th class="py-1.5 pr-3 font-semibold">工作表</th>
+          <th class="py-1.5 pr-3 font-semibold whitespace-nowrap">匯入時間</th>
+          <th class="py-1.5 font-semibold text-right whitespace-nowrap">筆數</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows.map(r => `
+          <tr class="border-b border-slate-50 dark:border-slate-800/50 hover:bg-slate-50 dark:hover:bg-slate-800/30">
+            <td class="py-1.5 pr-3 text-slate-400">${r.id}</td>
+            <td class="py-1.5 pr-3 text-slate-600 dark:text-slate-300 max-w-[200px] truncate" title="${esc(r.filename || '')}">${esc(r.filename || '')}</td>
+            <td class="py-1.5 pr-3 text-slate-500">${esc(r.sheet || '')}</td>
+            <td class="py-1.5 pr-3 text-slate-400 whitespace-nowrap">${esc(r.imported_at || '')}</td>
+            <td class="py-1.5 text-right font-semibold text-slate-600 dark:text-slate-300">${fmt(r.row_count)}</td>
+          </tr>`).join('')}
+      </tbody>
+    </table>`;
 }
+
+// Keep loadStats as alias for backward compat
+async function loadStats() { return loadDashboard(); }
 
 // ── Table ─────────────────────────────────────────────────────────────────────
 async function loadTable() {
@@ -1745,26 +1990,7 @@ async function doImport() {
 async function loadImportLog() {
   try {
     const rows = await fetchJSON('/api/import_log');
-    const el = document.getElementById('import-log');
-    if (!rows.length) { el.textContent = '尚無匯入記錄'; return; }
-    el.innerHTML = `<div class="overflow-x-auto">
-      <table class="w-full text-xs border-collapse">
-        <thead><tr class="border-b border-slate-100 dark:border-slate-800 text-slate-400">
-          <th class="py-1.5 pr-4 text-left font-semibold">檔案</th>
-          <th class="py-1.5 pr-4 text-left font-semibold">工作表</th>
-          <th class="py-1.5 pr-4 text-left font-semibold">匯入時間</th>
-          <th class="py-1.5 text-right font-semibold">筆數</th>
-        </tr></thead>
-        <tbody class="divide-y divide-slate-50 dark:divide-slate-800/40">
-          ${rows.map(r => `<tr class="hover:bg-slate-50 dark:hover:bg-slate-800/20">
-            <td class="py-1.5 pr-4 text-slate-600 dark:text-slate-300 max-w-[180px] truncate" title="${esc(r.filename)}">${esc(r.filename)}</td>
-            <td class="py-1.5 pr-4 text-slate-500 dark:text-slate-400">${esc(r.sheet)}</td>
-            <td class="py-1.5 pr-4 text-slate-500 dark:text-slate-400">${esc(r.imported_at)}</td>
-            <td class="py-1.5 text-right font-semibold text-slate-700 dark:text-slate-200">${r.row_count?.toLocaleString()}</td>
-          </tr>`).join('')}
-        </tbody>
-      </table>
-    </div>`;
+    renderImportLog(rows);
   } catch {}
 }
 

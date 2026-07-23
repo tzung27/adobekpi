@@ -639,6 +639,139 @@ def api_stats():
     return jsonify(stats)
 
 
+@app.route('/api/dashboard')
+def api_dashboard():
+    conn = get_db()
+    args = request.args.to_dict(flat=False)
+    conditions, params = [], []
+
+    def add_in(col, key):
+        vals = args.get(key, [])
+        if vals:
+            ph = ','.join(['?'] * len(vals))
+            conditions.append(f'"{col}" IN ({ph})')
+            params.extend(vals)
+
+    years = args.get('year', [])
+    if years:
+        ph = ','.join(['?'] * len(years))
+        conditions.append(f'SUBSTR("周年日",1,4) IN ({ph})')
+        params.extend(years)
+
+    months = args.get('month', [])
+    if months:
+        ph = ','.join(['?'] * len(months))
+        conditions.append(f'SUBSTR("周年日",1,7) IN ({ph})')
+        params.extend(months)
+
+    add_in('Cancellation_Quarter', 'quarter')
+    add_in('Attrition_Week',       'week')
+    add_in('進度',                  'progress')
+    add_in('Owner',                'owner')
+    add_in('Call_Name',            'callname')
+    add_in('市場別',                'market')
+    add_in('Attrition_Status',     'status')
+    add_in('Lost_Reason',          'lostreason')
+    add_in('部門別',                'dept')
+    add_in('經銷商',                'reseller')
+
+    where = ('WHERE ' + ' AND '.join(conditions)) if conditions else ''
+
+    safe_rb = (
+        "CASE WHEN \"Renew_Base\" GLOB '#*' OR \"Renew_Base\" IS NULL OR \"Renew_Base\"=''"
+        " THEN 0.0 ELSE CAST(REPLACE(\"Renew_Base\",',','') AS REAL) END"
+    )
+    safe_ca = (
+        "CASE WHEN \"Close_ARR\" GLOB '#*' OR \"Close_ARR\" IS NULL OR \"Close_ARR\"=''"
+        " THEN 0.0 ELSE CAST(REPLACE(\"Close_ARR\",',','') AS REAL) END"
+    )
+
+    cte = (
+        f'WITH cte AS (SELECT "客戶ID",'
+        f' SUM({safe_rb}) AS rb, SUM({safe_ca}) AS ca'
+        f' FROM main_table {where} GROUP BY "客戶ID")'
+    )
+
+    kpi_row = conn.execute(cte + '''
+        SELECT COUNT(*) AS total_accounts,
+               ROUND(SUM(rb),0) AS total_base_arr,
+               COUNT(CASE WHEN rb>=10000 THEN 1 END) AS ka_accounts,
+               ROUND(SUM(CASE WHEN rb>=10000 THEN rb ELSE 0 END),0) AS ka_base_arr,
+               COUNT(CASE WHEN rb>=10000 AND ca!=0 THEN 1 END) AS ka_close_accounts,
+               ROUND(SUM(CASE WHEN rb>=10000 AND ca!=0 THEN ca ELSE 0 END),0) AS ka_close_arr,
+               COUNT(CASE WHEN rb<10000 THEN 1 END) AS rr_accounts,
+               ROUND(SUM(CASE WHEN rb<10000 THEN rb ELSE 0 END),0) AS rr_base_arr,
+               COUNT(CASE WHEN rb<10000 AND ca!=0 THEN 1 END) AS rr_close_accounts,
+               ROUND(SUM(CASE WHEN rb<10000 AND ca!=0 THEN ca ELSE 0 END),0) AS rr_close_arr
+        FROM cte''', params).fetchone()
+    kpis = dict(kpi_row) if kpi_row else {}
+
+    def chart_query(col, limit=None):
+        extra = f' AND "{col}" IS NOT NULL AND "{col}"!=\'\''
+        w = ('WHERE ' + ' AND '.join(conditions) + extra) if conditions else f'WHERE "{col}" IS NOT NULL AND "{col}"!=\'\''
+        lim = f' LIMIT {limit}' if limit else ''
+        sql = (f'SELECT "{col}" AS s, COUNT(*) AS cnt,'
+               f' ROUND(SUM({safe_rb}),0) AS arr'
+               f' FROM main_table {w}'
+               f' GROUP BY "{col}" ORDER BY cnt DESC{lim}')
+        return [dict(r) for r in conn.execute(sql, params).fetchall()]
+
+    charts = {
+        'progress':   chart_query('進度'),
+        'owner':      chart_query('Owner'),
+        'callname':   chart_query('Call_Name'),
+        'market':     chart_query('市場別'),
+        'status':     chart_query('Attrition_Status'),
+        'lostreason': chart_query('Lost_Reason'),
+        'dept':       chart_query('部門別'),
+        'reseller':   chart_query('經銷商', limit=15),
+    }
+
+    def distinct_col(col):
+        rows = conn.execute(
+            f'SELECT DISTINCT "{col}" FROM main_table'
+            f" WHERE \"{col}\" IS NOT NULL AND \"{col}\"!='' ORDER BY \"{col}\""
+        ).fetchall()
+        return [r[0] for r in rows]
+
+    year_rows = conn.execute(
+        'SELECT DISTINCT SUBSTR("周年日",1,4) AS y FROM main_table'
+        " WHERE \"周年日\" IS NOT NULL AND \"周年日\"!='' ORDER BY y"
+    ).fetchall()
+    month_rows = conn.execute(
+        'SELECT DISTINCT SUBSTR("周年日",1,7) AS m FROM main_table'
+        " WHERE \"周年日\" IS NOT NULL AND \"周年日\"!='' ORDER BY m"
+    ).fetchall()
+
+    options = {
+        'year':       [r[0] for r in year_rows if r[0]],
+        'quarter':    distinct_col('Cancellation_Quarter'),
+        'month':      [r[0] for r in month_rows if r[0]],
+        'week':       distinct_col('Attrition_Week'),
+        'progress':   distinct_col('進度'),
+        'owner':      distinct_col('Owner'),
+        'callname':   distinct_col('Call_Name'),
+        'market':     distinct_col('市場別'),
+        'status':     distinct_col('Attrition_Status'),
+        'lostreason': distinct_col('Lost_Reason'),
+        'dept':       distinct_col('部門別'),
+        'reseller':   distinct_col('經銷商'),
+    }
+
+    import_rows = conn.execute(
+        'SELECT id, filename, sheet, imported_at, row_count'
+        ' FROM import_log ORDER BY id DESC LIMIT 100'
+    ).fetchall()
+    conn.close()
+
+    return jsonify({
+        'kpis':       kpis,
+        'charts':     charts,
+        'options':    options,
+        'import_log': [dict(r) for r in import_rows],
+    })
+
+
 @app.route('/api/distinct/<table>/<col>')
 def api_distinct(table, col):
     ALLOWED = {'main_table','rbob','key_account','tongji','close_summary','reseller_owner'}
