@@ -449,6 +449,7 @@
         <div class="msel-wrap" id="msel-market"   data-label="所有市場別"          ></div>
         <div class="msel-wrap" id="msel-owner"    data-label="所有 Owner"         ></div>
         <div class="msel-wrap" id="msel-callname" data-label="所有 Call out 人員"  ></div>
+        <div class="msel-wrap" id="msel-progress" data-label="所有進度"            ></div>
         <button id="btn-add-row" onclick="openNewRow()"
           class="ml-auto px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-semibold text-sm shadow-lg shadow-indigo-500/20 hover:brightness-110 active:scale-95 flex items-center gap-2 transition-all whitespace-nowrap">
           <i data-lucide="plus" class="w-4 h-4"></i> 新增資料
@@ -1112,6 +1113,7 @@ const MSEL_FIELDS = [
   { wrap:'msel-market',   col:'市場別',           label:'所有市場別' },
   { wrap:'msel-owner',    col:'Owner',            label:'所有 Owner' },
   { wrap:'msel-callname', col:'Call_Name',        label:'所有 Call out 人員' },
+  { wrap:'msel-progress', col:'進度',             label:'所有進度' },
 ];
 
 function mselGetSelected(wrapId) {
@@ -1264,6 +1266,7 @@ function applyFilters() {
     'msel-market':   '市場別',
     'msel-owner':    'Owner',
     'msel-callname': 'Call_Name',
+    'msel-progress': '進度',
   };
   Object.entries(map).forEach(([wid, col]) => {
     const sel = mselGetSelected(wid);
