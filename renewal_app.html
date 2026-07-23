@@ -1124,10 +1124,10 @@ const PROGRESS_GROUPS = [
 // Lost Reason 分組順序
 const _LR2 = [
   'Account consolidation',
-  'A.com','CCI','A.com，CCI','A.com, CCI',
-  '改用 AIGC','改用AIGC','改用AI','改用 AI',
-  'New VIP - 3year','New VIP - 2year','New VIP -1year or below','New VIP - 1year or below',
-  'LM: VIP to other countries','LM-整併VIP','LM-多買',
+  'A.com , CCI',
+  '改用AI','改用AIGC',
+  'New VIP - 3year','New VIP - 2year','New VIP  -1year or below',
+  'LM: VIP to other countries','LM -整併VIP','LM- 多買',
   '轉換其他廠牌',
 ];
 const _LR3 = ['Company downsized / No User','Shut Down','No Budget','Low usage / Low deployment','Unknown /no feedback','Unable to reach','Others'];
@@ -1167,7 +1167,7 @@ function syncLostReasonFilter(selectedStatus) {
 const MSEL_FIELDS = [
   { wrap:'msel-progress',   col:'進度',             label:'所有進度',         groups: PROGRESS_GROUPS },
   { wrap:'msel-status',     col:'Attrition_Status', label:'所有 Status' },
-  { wrap:'msel-lostreason', col:'Lost Reason',      label:'所有 Lost Reason', groups: LOSTREASON_GROUPS },
+  { wrap:'msel-lostreason', col:'Lost_Reason',      label:'所有 Lost Reason', groups: LOSTREASON_GROUPS },
   { wrap:'msel-market',     col:'市場別',           label:'所有市場別' },
   { wrap:'msel-owner',      col:'Owner',            label:'所有 Owner' },
   { wrap:'msel-callname',   col:'Call_Name',        label:'所有 Call out 人員' },
@@ -1383,7 +1383,7 @@ function applyFilters() {
   const map = {
     'msel-progress':   '進度',
     'msel-status':     'Attrition_Status',
-    'msel-lostreason': 'Lost Reason',
+    'msel-lostreason': 'Lost_Reason',
     'msel-market':     '市場別',
     'msel-owner':      'Owner',
     'msel-callname':   'Call_Name',
