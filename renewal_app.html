@@ -1688,9 +1688,18 @@ async function loadImportLog() {
 // ── Export CSV ────────────────────────────────────────────────────────────────
 async function exportCSV() {
   if (currentTab === 'dash') { showToast('請先切換到資料表分頁再匯出', 'warn'); return; }
-  const { table } = tblState;
+  const { table, q, filters, sortCol, sortDir } = tblState;
   try {
-    const data = await fetchJSON(`/api/data/${table}?limit=5000&page=1`);
+    // Build same URL as loadTable but with limit=999999 to get all rows
+    let url = `/api/data/${table}?page=1&limit=999999`;
+    if (sortCol) url += `&sort_col=${encodeURIComponent(sortCol)}&sort_dir=${sortDir}`;
+    if (q) url += '&q=' + encodeURIComponent(q);
+    for (const [k, v] of Object.entries(filters)) {
+      const vals = Array.isArray(v) ? v : (v ? [v] : []);
+      vals.forEach(val => { url += `&f_${encodeURIComponent(k)}=${encodeURIComponent(val)}`; });
+    }
+    showToast('匯出中，請稍候…', 'info');
+    const data = await fetchJSON(url);
     if (!data.rows.length) { showToast('無資料可匯出', 'warn'); return; }
     const keys = Object.keys(data.rows[0]).filter(k => k !== 'id');
     const colMeta = await fetchJSON(`/api/columns/${table}`);
