@@ -1116,17 +1116,17 @@ const MSEL_FIELDS = [
   { wrap:'msel-callname', col:'Call_Name',        label:'所有 Call out 人員' },
 ];
 
-// 進度 → Attrition_Status 連動對應
+// 進度 → Attrition_Status 連動對應（依資料庫實際值）
 const PROGRESS_STATUS_MAP = {
-  'Close':       ['Change_License'],
-  'Close Below': ['Change_to_NEW'],
-  'Commit':      ['Change_to_NEW'],
-  'Upside':      ['Change_to_NEW'],
-  'NC':          ['Change_to_NEW'],
-  'NEW':         ['Change_to_NEW'],
-  'NEW-Y':       ['Change_to_NEW'],
-  'LOST':        ['Change_to_NEW'],
-  'ETLA':        ['True_Cancel'],
+  'Closed':     ['Change_License'],
+  'Closebelow': ['Change_to_NEW'],
+  'Commit':     ['Change_to_NEW'],
+  'Upside':     ['Change_to_NEW'],
+  'NC':         ['Change_to_NEW'],
+  'New':        ['Change_to_NEW'],
+  'NEW-Y':      ['Change_to_NEW'],
+  'Lost':       ['Change_to_NEW'],
+  'ETLA':       ['True_Cancel'],
 };
 
 function syncStatusFilter(selectedProgress) {
