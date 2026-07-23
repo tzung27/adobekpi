@@ -150,6 +150,9 @@
         <button class="tab-btn" data-tab="main" onclick="switchTab('main')">
           <i data-lucide="table-2" class="w-4 h-4"></i> 總表(New)
         </button>
+        <button class="tab-btn" data-tab="original" onclick="switchTab('original')">
+          <i data-lucide="table" class="w-4 h-4"></i> 原始總表
+        </button>
         <button class="tab-btn" data-tab="rbob" onclick="switchTab('rbob')">
           <i data-lucide="database" class="w-4 h-4"></i> RBOB
         </button>
@@ -726,6 +729,7 @@ let rowModalCols = [];    // [{col_key, col_label}]
 
 const TABLE_MAP = {
   main:       { table:'main_table',    label:'總表(New)' },
+  original:   { table:'main_table',    label:'原始總表' },
   rbob:       { table:'rbob',          label:'RBOB' },
   keyaccount: { table:'key_account',   label:'Key Account' },
   tongji:     { table:'tongji',        label:'統整報表' },
@@ -773,7 +777,7 @@ function switchTab(tab) {
     return;
   }
 
-  const isMain = tab === 'main';
+  const isMain = tab === 'main' || tab === 'original';
   document.getElementById('main-toolbar').classList.toggle('hidden', !isMain);
   document.getElementById('generic-toolbar').classList.toggle('hidden', isMain || isDash);
 
@@ -1825,7 +1829,7 @@ async function afterLogin() {
 
   // Tab visibility
   const TAB_PERM_KEY = {
-    'dash':'_tab_dash','main':'_tab_main','rbob':'_tab_rbob',
+    'dash':'_tab_dash','main':'_tab_main','original':'_tab_main','rbob':'_tab_rbob',
     'keyaccount':'_tab_keyaccount','tongji':'_tab_tongji',
     'close':'_tab_close','reseller':'_tab_reseller','admin':'_tab_admin'
   };
