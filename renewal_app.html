@@ -1145,7 +1145,8 @@ function syncStatusFilter(selectedProgress) {
   const wrap = document.getElementById('msel-status');
   if (!wrap) return;
   if (selectedProgress.length === 0) {
-    wrap.querySelectorAll('.msel-list label').forEach(lbl => lbl.style.display = '');
+    wrap.querySelectorAll('.msel-list label').forEach(lbl => { delete lbl.dataset.synchidden; lbl.style.display = ''; });
+    mselUpdateLabel(wrap);
     return;
   }
   const allowed = new Set();
