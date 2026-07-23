@@ -479,7 +479,7 @@ def api_data(table):
         return jsonify(error='invalid table'), 400
 
     page  = max(1, int(request.args.get('page', 1)))
-    limit = min(500, int(request.args.get('limit', 100)))
+    limit = min(99999, int(request.args.get('limit', 100)))
     q     = request.args.get('q', '').strip()
     col   = request.args.get('col', '')   # filter by specific col
     val   = request.args.get('val', '')
