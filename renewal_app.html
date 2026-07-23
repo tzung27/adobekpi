@@ -1141,8 +1141,8 @@ function syncStatusFilter(selectedProgress) {
   wrap.querySelectorAll('.msel-list label').forEach(lbl => {
     const val = lbl.querySelector('input')?.value;
     const show = allowed.size === 0 || allowed.has(val);
-    lbl.style.display = show ? '' : 'none';
-    if (!show && lbl.querySelector('input')) lbl.querySelector('input').checked = false;
+    if (show) { delete lbl.dataset.synchidden; lbl.style.display = ''; }
+    else { lbl.dataset.synchidden = '1'; lbl.style.display = 'none'; if (lbl.querySelector('input')) lbl.querySelector('input').checked = false; }
   });
   mselUpdateLabel(wrap);
 }
@@ -1184,6 +1184,7 @@ function mselBuild(f, vals) {
   searchInput.oninput = () => {
     const q = searchInput.value.toLowerCase();
     dd.querySelectorAll('label').forEach(lbl => {
+      if (lbl.dataset.synchidden) { lbl.style.display = 'none'; return; }
       lbl.style.display = lbl.textContent.toLowerCase().includes(q) ? '' : 'none';
     });
   };
