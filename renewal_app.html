@@ -449,10 +449,11 @@
             class="w-full pl-9 pr-4 py-2 rounded-xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/40 text-slate-700 dark:text-slate-200"
             oninput="debounceSearch()">
         </div>
-        <div class="msel-wrap" id="msel-progress" data-label="所有進度"            ></div>
-        <div class="msel-wrap" id="msel-status"   data-label="所有 Status"       ></div>
-        <div class="msel-wrap" id="msel-market"   data-label="所有市場別"          ></div>
-        <div class="msel-wrap" id="msel-owner"    data-label="所有 Owner"         ></div>
+        <div class="msel-wrap" id="msel-progress"   data-label="所有進度"            ></div>
+        <div class="msel-wrap" id="msel-status"    data-label="所有 Status"        ></div>
+        <div class="msel-wrap" id="msel-lostreason" data-label="所有 Lost Reason"  ></div>
+        <div class="msel-wrap" id="msel-market"   data-label="所有市場別"           ></div>
+        <div class="msel-wrap" id="msel-owner"    data-label="所有 Owner"          ></div>
         <div class="msel-wrap" id="msel-callname" data-label="所有 Call out 人員"  ></div>
         <button id="btn-add-row" onclick="openNewRow()"
           class="ml-auto px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-semibold text-sm shadow-lg shadow-indigo-500/20 hover:brightness-110 active:scale-95 flex items-center gap-2 transition-all whitespace-nowrap">
@@ -1120,12 +1121,46 @@ const PROGRESS_GROUPS = [
   ['ETLA'],
 ];
 
+// Lost Reason 分組順序
+const LOSTREASON_GROUPS = [
+  ['ETLA'],
+  ['Account consolidation','A.com','CCI','改用 AIGC','New VIP - 3year','New VIP - 2year','New VIP -1year or below','LM: VIP to other countries'],
+  ['Company downsized / No User','Shut Down','No Budget','Low usage / Low deployment','Unknown /no feedback','Unable to reach','Others'],
+];
+
+// Status → Lost Reason 連動
+const STATUS_LOSTREASON_MAP = {
+  'Change_License': ['ETLA'],
+  'Change_to_NEW':  ['Account consolidation','A.com','CCI','改用 AIGC','New VIP - 3year','New VIP - 2year','New VIP -1year or below','LM: VIP to other countries'],
+  'True_Cancel':    ['Company downsized / No User','Shut Down','No Budget','Low usage / Low deployment','Unknown /no feedback','Unable to reach','Others'],
+};
+
+function syncLostReasonFilter(selectedStatus) {
+  const wrap = document.getElementById('msel-lostreason');
+  if (!wrap) return;
+  if (selectedStatus.length === 0) {
+    wrap.querySelectorAll('.msel-list label').forEach(lbl => { delete lbl.dataset.synchidden; lbl.style.display = ''; });
+    mselUpdateLabel(wrap);
+    return;
+  }
+  const allowed = new Set();
+  selectedStatus.forEach(s => (STATUS_LOSTREASON_MAP[s] || []).forEach(r => allowed.add(r)));
+  wrap.querySelectorAll('.msel-list label').forEach(lbl => {
+    const val = lbl.querySelector('input')?.value;
+    const show = allowed.size === 0 || allowed.has(val);
+    if (show) { delete lbl.dataset.synchidden; lbl.style.display = ''; }
+    else { lbl.dataset.synchidden = '1'; lbl.style.display = 'none'; if (lbl.querySelector('input')) lbl.querySelector('input').checked = false; }
+  });
+  mselUpdateLabel(wrap);
+}
+
 const MSEL_FIELDS = [
-  { wrap:'msel-progress', col:'進度',             label:'所有進度', groups: PROGRESS_GROUPS },
-  { wrap:'msel-status',   col:'Attrition_Status', label:'所有 Status' },
-  { wrap:'msel-market',   col:'市場別',           label:'所有市場別' },
-  { wrap:'msel-owner',    col:'Owner',            label:'所有 Owner' },
-  { wrap:'msel-callname', col:'Call_Name',        label:'所有 Call out 人員' },
+  { wrap:'msel-progress',   col:'進度',             label:'所有進度',         groups: PROGRESS_GROUPS },
+  { wrap:'msel-status',     col:'Attrition_Status', label:'所有 Status' },
+  { wrap:'msel-lostreason', col:'Lost Reason',      label:'所有 Lost Reason', groups: LOSTREASON_GROUPS },
+  { wrap:'msel-market',     col:'市場別',           label:'所有市場別' },
+  { wrap:'msel-owner',      col:'Owner',            label:'所有 Owner' },
+  { wrap:'msel-callname',   col:'Call_Name',        label:'所有 Call out 人員' },
 ];
 
 // 進度 → Attrition_Status 連動對應（依資料庫實際值）
@@ -1147,6 +1182,7 @@ function syncStatusFilter(selectedProgress) {
   if (selectedProgress.length === 0) {
     wrap.querySelectorAll('.msel-list label').forEach(lbl => { delete lbl.dataset.synchidden; lbl.style.display = ''; });
     mselUpdateLabel(wrap);
+    syncLostReasonFilter([]);
     return;
   }
   const allowed = new Set();
@@ -1158,6 +1194,8 @@ function syncStatusFilter(selectedProgress) {
     else { lbl.dataset.synchidden = '1'; lbl.style.display = 'none'; if (lbl.querySelector('input')) lbl.querySelector('input').checked = false; }
   });
   mselUpdateLabel(wrap);
+  // cascade: also filter Lost Reason based on the now-visible statuses
+  syncLostReasonFilter([...allowed]);
 }
 
 function mselGetSelected(wrapId) {
@@ -1211,6 +1249,7 @@ function mselBuild(f, vals) {
     dd.querySelectorAll('input[type=checkbox]').forEach(cb => cb.checked = false);
     mselUpdateLabel(wrap);
     if (f.wrap === 'msel-progress') syncStatusFilter([]);
+    if (f.wrap === 'msel-status') syncLostReasonFilter([]);
     applyFilters();
   };
   dd.appendChild(clearBtn);
@@ -1225,6 +1264,7 @@ function mselBuild(f, vals) {
     cb.onchange = () => {
       mselUpdateLabel(wrap);
       if (f.wrap === 'msel-progress') syncStatusFilter(mselGetSelected('msel-progress'));
+      if (f.wrap === 'msel-status') syncLostReasonFilter(mselGetSelected('msel-status'));
       applyFilters();
     };
     lbl.appendChild(cb);
@@ -1330,11 +1370,12 @@ function tblSort(col) {
 function applyFilters() {
   tblState.filters = {};
   const map = {
-    'msel-status':   'Attrition_Status',
-    'msel-market':   '市場別',
-    'msel-owner':    'Owner',
-    'msel-callname': 'Call_Name',
-    'msel-progress': '進度',
+    'msel-progress':   '進度',
+    'msel-status':     'Attrition_Status',
+    'msel-lostreason': 'Lost Reason',
+    'msel-market':     '市場別',
+    'msel-owner':      'Owner',
+    'msel-callname':   'Call_Name',
   };
   Object.entries(map).forEach(([wid, col]) => {
     const sel = mselGetSelected(wid);
