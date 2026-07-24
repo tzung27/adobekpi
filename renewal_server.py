@@ -674,6 +674,8 @@ def api_dashboard():
     add_in('Lost_Reason',          'lostreason')
     add_in('部門別',                'dept')
     add_in('經銷商',                'reseller')
+    add_in('客戶公司中文名',          'customer')
+    add_in('展碁業務',               'bizowner')
 
     where = ('WHERE ' + ' AND '.join(conditions)) if conditions else ''
 
@@ -725,6 +727,8 @@ def api_dashboard():
         'lostreason': chart_query('Lost_Reason'),
         'dept':       chart_query('部門別'),
         'reseller':   chart_query('經銷商', limit=15),
+        'customer':   chart_query('客戶公司中文名', limit=15),
+        'bizowner':   chart_query('展碁業務'),
     }
 
     def distinct_col(col):
@@ -756,6 +760,8 @@ def api_dashboard():
         'lostreason': distinct_col('Lost_Reason'),
         'dept':       distinct_col('部門別'),
         'reseller':   distinct_col('經銷商'),
+        'customer':   distinct_col('客戶公司中文名'),
+        'bizowner':   distinct_col('展碁業務'),
     }
 
     import_rows = conn.execute(

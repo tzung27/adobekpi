@@ -306,6 +306,8 @@
         <div class="msel-wrap" id="dash-msel-lostreason" data-label="Lost Reason"></div>
         <div class="msel-wrap" id="dash-msel-dept"       data-label="部門別"></div>
         <div class="msel-wrap" id="dash-msel-reseller"   data-label="經銷商"></div>
+        <div class="msel-wrap" id="dash-msel-customer"   data-label="客戶"></div>
+        <div class="msel-wrap" id="dash-msel-bizowner"   data-label="展碁業務"></div>
         <button onclick="clearDashFilters()"
           class="ml-auto px-3 py-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
           清除篩選
@@ -459,6 +461,18 @@
           <span class="w-1.5 h-3.5 bg-sky-500 rounded-full"></span>Top 15 經銷商
         </p>
         <div id="dash-chart-reseller" class="dash-chart-body"></div>
+      </div>
+      <div class="p-4 rounded-2xl bg-white dark:bg-darkCard border border-slate-100 dark:border-slate-800/50 shadow-sm">
+        <p class="text-xs font-bold text-slate-500 mb-3 flex items-center gap-1.5">
+          <span class="w-1.5 h-3.5 bg-pink-500 rounded-full"></span>Top 15 客戶
+        </p>
+        <div id="dash-chart-customer" class="dash-chart-body"></div>
+      </div>
+      <div class="p-4 rounded-2xl bg-white dark:bg-darkCard border border-slate-100 dark:border-slate-800/50 shadow-sm">
+        <p class="text-xs font-bold text-slate-500 mb-3 flex items-center gap-1.5">
+          <span class="w-1.5 h-3.5 bg-violet-500 rounded-full"></span>展碁業務
+        </p>
+        <div id="dash-chart-bizowner" class="dash-chart-body"></div>
       </div>
     </div>
 
@@ -912,7 +926,8 @@ function switchTab(tab) {
 let dashFilters = {
   year:[], quarter:[], month:[], week:[],
   progress:[], owner:[], callname:[], market:[],
-  status:[], lostreason:[], dept:[], reseller:[]
+  status:[], lostreason:[], dept:[], reseller:[],
+  customer:[], bizowner:[]
 };
 let dashMetric = 'cnt';
 let dashCharts = {};
@@ -985,6 +1000,8 @@ function buildAllDashMsels(opts) {
     ['dash-msel-lostreason','lostreason', opts.lostreason, 'Lost Reason'],
     ['dash-msel-dept',      'dept',       opts.dept,       '部門別'],
     ['dash-msel-reseller',  'reseller',   opts.reseller,   '經銷商'],
+    ['dash-msel-customer',  'customer',   opts.customer,   '客戶'],
+    ['dash-msel-bizowner',  'bizowner',   opts.bizowner,   '展碁業務'],
   ];
   fields.forEach(([id, key, vals, label]) => {
     mselBuildDash(id, label, vals || [], () => {
@@ -1063,6 +1080,8 @@ const DASH_CHART_CFG = [
   { key:'lostreason', id:'dash-chart-lostreason',  color:'#f97316' },
   { key:'dept',       id:'dash-chart-dept',        color:'#10b981' },
   { key:'reseller',   id:'dash-chart-reseller',    color:'#0ea5e9' },
+  { key:'customer',   id:'dash-chart-customer',    color:'#ec4899' },
+  { key:'bizowner',   id:'dash-chart-bizowner',    color:'#8b5cf6' },
 ];
 
 function renderDashCharts(charts) {
