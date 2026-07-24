@@ -1407,7 +1407,7 @@ function syncLostReasonFilter(selectedStatus) {
 }
 
 const MSEL_FIELDS = [
-  { wrap:'msel-progress',   col:'進度',             label:'所有進度',         groups: PROGRESS_GROUPS },
+  { wrap:'msel-progress',   col:'進度',             label:'所有進度' },
   { wrap:'msel-status',     col:'Attrition_Status', label:'所有 Status' },
   { wrap:'msel-lostreason', col:'Lost_Reason',      label:'所有 Lost Reason', groups: LOSTREASON_GROUPS },
   { wrap:'msel-market',     col:'市場別',           label:'所有市場別' },
@@ -1501,7 +1501,6 @@ function mselBuild(f, vals) {
   clearBtn.onclick = () => {
     dd.querySelectorAll('input[type=checkbox]').forEach(cb => cb.checked = false);
     mselUpdateLabel(wrap);
-    if (f.wrap === 'msel-progress') syncStatusFilter([]);
     if (f.wrap === 'msel-status') syncLostReasonFilter([]);
     applyFilters();
   };
@@ -1516,7 +1515,6 @@ function mselBuild(f, vals) {
     cb.type = 'checkbox'; cb.value = v;
     cb.onchange = () => {
       mselUpdateLabel(wrap);
-      if (f.wrap === 'msel-progress') syncStatusFilter(mselGetSelected('msel-progress'));
       if (f.wrap === 'msel-status') syncLostReasonFilter(mselGetSelected('msel-status'));
       applyFilters();
     };
