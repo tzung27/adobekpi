@@ -275,6 +275,10 @@
   }
   .tab-btn:hover:not(.tab-active) { color: #475569; background: rgba(0,0,0,.04); }
   html.dark .tab-btn:hover:not(.tab-active) { color: #94a3b8; background: rgba(255,255,255,.04); }
+  /* Dashboard chart CSS vars */
+  :root { --dc-lbl:#64748b; --dc-bg:#f1f5f9; --dc-val:#475569; }
+  html.dark { --dc-lbl:#94a3b8; --dc-bg:#1e293b; --dc-val:#cbd5e1; }
+  .dash-chart-body { font-size:11px; }
 </style>
 
 <!-- ══ MAIN ══ -->
@@ -412,49 +416,49 @@
         <p class="text-xs font-bold text-slate-500 mb-3 flex items-center gap-1.5">
           <span class="w-1.5 h-3.5 bg-indigo-500 rounded-full"></span>進度
         </p>
-        <div style="position:relative;height:200px"><canvas id="dash-chart-progress"></canvas></div>
+        <div id="dash-chart-progress" class="dash-chart-body"></div>
       </div>
       <div class="p-4 rounded-2xl bg-white dark:bg-darkCard border border-slate-100 dark:border-slate-800/50 shadow-sm">
         <p class="text-xs font-bold text-slate-500 mb-3 flex items-center gap-1.5">
           <span class="w-1.5 h-3.5 bg-purple-500 rounded-full"></span>Owner
         </p>
-        <div style="position:relative;height:200px"><canvas id="dash-chart-owner"></canvas></div>
+        <div id="dash-chart-owner" class="dash-chart-body"></div>
       </div>
       <div class="p-4 rounded-2xl bg-white dark:bg-darkCard border border-slate-100 dark:border-slate-800/50 shadow-sm">
         <p class="text-xs font-bold text-slate-500 mb-3 flex items-center gap-1.5">
           <span class="w-1.5 h-3.5 bg-cyan-500 rounded-full"></span>Call Out 人員
         </p>
-        <div style="position:relative;height:200px"><canvas id="dash-chart-callname"></canvas></div>
+        <div id="dash-chart-callname" class="dash-chart-body"></div>
       </div>
       <div class="p-4 rounded-2xl bg-white dark:bg-darkCard border border-slate-100 dark:border-slate-800/50 shadow-sm">
         <p class="text-xs font-bold text-slate-500 mb-3 flex items-center gap-1.5">
           <span class="w-1.5 h-3.5 bg-amber-500 rounded-full"></span>市場別
         </p>
-        <div style="position:relative;height:200px"><canvas id="dash-chart-market"></canvas></div>
+        <div id="dash-chart-market" class="dash-chart-body"></div>
       </div>
       <div class="p-4 rounded-2xl bg-white dark:bg-darkCard border border-slate-100 dark:border-slate-800/50 shadow-sm">
         <p class="text-xs font-bold text-slate-500 mb-3 flex items-center gap-1.5">
           <span class="w-1.5 h-3.5 bg-rose-500 rounded-full"></span>Attrition Status
         </p>
-        <div style="position:relative;height:200px"><canvas id="dash-chart-status"></canvas></div>
+        <div id="dash-chart-status" class="dash-chart-body"></div>
       </div>
       <div class="p-4 rounded-2xl bg-white dark:bg-darkCard border border-slate-100 dark:border-slate-800/50 shadow-sm">
         <p class="text-xs font-bold text-slate-500 mb-3 flex items-center gap-1.5">
           <span class="w-1.5 h-3.5 bg-orange-500 rounded-full"></span>Lost Reason
         </p>
-        <div style="position:relative;height:200px"><canvas id="dash-chart-lostreason"></canvas></div>
+        <div id="dash-chart-lostreason" class="dash-chart-body"></div>
       </div>
       <div class="p-4 rounded-2xl bg-white dark:bg-darkCard border border-slate-100 dark:border-slate-800/50 shadow-sm">
         <p class="text-xs font-bold text-slate-500 mb-3 flex items-center gap-1.5">
           <span class="w-1.5 h-3.5 bg-emerald-500 rounded-full"></span>部門別
         </p>
-        <div style="position:relative;height:200px"><canvas id="dash-chart-dept"></canvas></div>
+        <div id="dash-chart-dept" class="dash-chart-body"></div>
       </div>
       <div class="p-4 rounded-2xl bg-white dark:bg-darkCard border border-slate-100 dark:border-slate-800/50 shadow-sm">
         <p class="text-xs font-bold text-slate-500 mb-3 flex items-center gap-1.5">
           <span class="w-1.5 h-3.5 bg-sky-500 rounded-full"></span>Top 15 經銷商
         </p>
-        <div style="position:relative;height:200px"><canvas id="dash-chart-reseller"></canvas></div>
+        <div id="dash-chart-reseller" class="dash-chart-body"></div>
       </div>
     </div>
 
@@ -1062,53 +1066,27 @@ const DASH_CHART_CFG = [
 ];
 
 function renderDashCharts(charts) {
-  const dark = isDark();
   DASH_CHART_CFG.forEach(spec => {
-    const rows = (charts[spec.key] || []).slice(0, 15);
-    const canvas = document.getElementById(spec.id);
-    if (!canvas || !window.Chart) return;
-    if (dashCharts[spec.key]) { dashCharts[spec.key].destroy(); delete dashCharts[spec.key]; }
-    if (!rows.length) return;
-    const labels = rows.map(r => r.s || '(空)');
-    const values = dashMetric === 'arr' ? rows.map(r => r.arr || 0) : rows.map(r => r.cnt);
-    dashCharts[spec.key] = new Chart(canvas, {
-      type: 'bar',
-      data: {
-        labels,
-        datasets: [{
-          data: values,
-          backgroundColor: spec.color + 'bb',
-          borderColor: spec.color,
-          borderWidth: 1,
-          borderRadius: 4,
-        }]
-      },
-      options: {
-        indexAxis: 'y',
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            callbacks: {
-              label: ctx => dashMetric === 'arr'
-                ? fmtARR(ctx.parsed.x)
-                : ctx.parsed.x + ' 件'
-            }
-          }
-        },
-        scales: {
-          x: {
-            grid: { color: dark ? '#1e293b' : '#f1f5f9' },
-            ticks: { color: dark ? '#94a3b8' : '#64748b', font: { size: 10 } }
-          },
-          y: {
-            grid: { display: false },
-            ticks: { color: dark ? '#94a3b8' : '#475569', font: { size: 10 }, maxRotation: 0 }
-          }
-        }
-      }
-    });
+    const el = document.getElementById(spec.id);
+    if (!el) return;
+    const rows = charts[spec.key] || [];
+    if (!rows.length) { el.innerHTML = '<p style="font-size:11px;color:#94a3b8">無資料</p>'; return; }
+    const values = rows.map(r => dashMetric === 'arr' ? (r.arr || 0) : r.cnt);
+    const maxVal = Math.max(...values, 1);
+    el.innerHTML = rows.map((r, i) => {
+      const val = values[i];
+      const pct = Math.max(2, Math.round(val / maxVal * 100));
+      const label = r.s || '(空)';
+      const valStr = dashMetric === 'arr' ? fmtARR(val) : val.toLocaleString();
+      return `<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px">
+        <div style="width:88px;flex-shrink:0;font-size:11px;color:var(--dc-lbl);text-align:right;
+             white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${esc(label)}">${esc(label)}</div>
+        <div style="flex:1;background:var(--dc-bg);border-radius:3px;height:14px;overflow:hidden;min-width:0">
+          <div style="width:${pct}%;height:100%;background:${spec.color};border-radius:3px;opacity:.85"></div>
+        </div>
+        <div style="width:46px;flex-shrink:0;font-size:11px;font-weight:700;color:var(--dc-val);text-align:left">${valStr}</div>
+      </div>`;
+    }).join('');
   });
 }
 
